@@ -121,6 +121,42 @@ npm run build
 
 ---
 
+## Post-Push Runtime Smoke Test (MANDATORY)
+
+**Why:** `npm run build` catches compile-time errors but NOT runtime errors like middleware crashes, edge runtime incompatibilities, or server component failures that only surface on Vercel's infrastructure.
+
+**After every push, verify the live deployment:**
+
+```bash
+# 1. Wait for Vercel deploy to finish (check dashboard or `vercel ls`)
+
+# 2. Hit the login page — should render without 500
+curl -s -o /dev/null -w "%{http_code}" https://YOUR_APP.vercel.app/login
+# Expected: 200
+
+# 3. Hit a protected route — should redirect to /login (302) not crash (500)
+curl -s -o /dev/null -w "%{http_code}" https://YOUR_APP.vercel.app/dashboard
+# Expected: 302 (redirect to login)
+
+# 4. Hit an API route — should return 401 not 500
+curl -s -o /dev/null -w "%{http_code}" https://YOUR_APP.vercel.app/api/v1/auth/me
+# Expected: 401
+```
+
+**What it catches that `npm run build` does NOT:**
+- Middleware/proxy runtime failures (MIDDLEWARE_INVOCATION_FAILED)
+- Edge runtime incompatibilities (Node APIs used in edge context)
+- Missing env vars at runtime (build can pass with `force-dynamic` but runtime still needs them)
+- Supabase connection failures (wrong URL/key, network policies)
+- Server component errors that only trigger on real requests
+
+**Known patterns:**
+- Next.js 16 deprecated `middleware.ts` → use server-side auth in layouts instead. Middleware causes `MIDDLEWARE_INVOCATION_FAILED` on Vercel edge runtime.
+- Auth guard lives in `src/app/(app)/layout.tsx` — server-side `supabase.auth.getUser()` + `redirect('/login')`.
+- Do NOT use `src/middleware.ts` — it was deleted for this reason.
+
+---
+
 ## Common Pitfalls
 
 <!-- LEARNING LOOP TARGET: Add things that DON'T work here -->
@@ -133,6 +169,8 @@ npm run build
 | Testing too much at once | Run all tests blindly | Focus on the changed area first |
 | Skipping build check before push | "It works in dev" | Run `npm run build` — dev mode skips prerender |
 | Static page with Supabase client | Page prerenders without env vars | Add `export const dynamic = 'force-dynamic'` to layout |
+| Using middleware.ts on Next.js 16 | MIDDLEWARE_INVOCATION_FAILED on Vercel | Use server-side auth check in layout instead |
+| Only testing build, not runtime | "Build passed so it works" | Also run smoke test curl commands after deploy |
 
 ---
 
