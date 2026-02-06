@@ -1,10 +1,10 @@
 # Bigger Picture
 
-> **ACTIVE GOAL:** Build Remote Munshi CRM — full Turia clone with REST API + webhooks (Next.js 14 + Supabase)
+> **ACTIVE GOAL:** Build Remote Munshi CRM — full Turia clone with REST API + webhooks (Next.js 16 + Supabase)
 >
-> **STATUS:** IN_PROGRESS
+> **STATUS:** CODE_RECOVERED_AND_COMMITTED
 >
-> **NEXT STEP:** All design + dead button fixes complete — awaiting next user request
+> **NEXT STEP:** All 254 source files recovered from disk (were never committed), git initialized, committed (312 files / 37,960 LOC), pushed to GitHub. Build passes (97 pages, 71 API routes, 0 errors). Vercel auto-deploy should trigger. Awaiting user direction.
 
 **Last Updated:** 2026-02-06
 
@@ -73,8 +73,9 @@
 - Dead UI Button Fixes: Removed 3 empty handlers (onAdd×2 on passwords/documents, onExport on clients), created ComingSoon reusable component, created 4 topbar/mobile-nav placeholder pages (sprint-planner, chat, calendar, actions-center), created 14 report sub-route placeholder pages — all previously-404 links now render gracefully
 
 ### What's Left
-1. Phase 1: Foundation setup (NOW)
-2. Phases 2-10 (sequential)
+1. Verify Vercel deployment works with env vars
+2. Test auth flow end-to-end on live deployment
+3. Any remaining feature additions per user request
 
 ---
 
