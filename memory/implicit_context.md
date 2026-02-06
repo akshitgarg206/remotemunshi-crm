@@ -1,23 +1,25 @@
 # Implicit Context
 
-> **RESUME BRIEF:** <!-- 2-3 lines MAX. Written before context clear. Tells the next session exactly where to pick up. Example: "Was fixing auth timeout bug in login.py:45. Root cause identified: connection pool exhaustion. Fix written but not tested yet. Run pytest tests/test_auth.py to verify." -->
+> **RESUME BRIEF:** Production deployed at remotemunshi-crm.vercel.app (login page works, 200 OK). Performance optimized: login page static (CDN), function region set to Mumbai (bom1). No test user exists yet — next step is create Supabase auth user + employees row with Super Admin role to test login flow. IMPORTANT: always push to both `main` AND `master` (`git push origin main && git push origin main:master`) since Vercel production tracks `master`.
 
-**Last Updated:** <!-- YYYY-MM-DD HH:MM -->
+**Last Updated:** 2026-02-07
 
 ---
 
 ## Current Session
 
 ### Active Work
-- **Task:**
-- **Approach:**
-- **Files touched:**
+- **Task:** None active — all done
+- **Approach:** —
+- **Files touched:** `src/app/(auth)/layout.tsx`, `vercel.json`
 
 ### Decisions Made (with reasoning)
 | Decision | Why | Alternatives Rejected |
 |----------|-----|----------------------|
 | GitHub + Vercel for deployment | Auto-deploys on push, preview URLs for branches/PRs, better long-term workflow | Vercel CLI-only (requires manual `npx vercel` each time) |
 | GitHub repo: `akshitgarg206/remotemunshi-crm` | User's chosen repo name and account | — |
+| Force-push main→master for production | Vercel production branch is `master`, CRM code is on `main`, no common ancestor | Change Vercel production branch setting (user would need dashboard access) |
+| Mumbai (bom1) function region | Users in India, default iad1 adds 200-300ms latency | — |
 
 ### Failed Attempts (DO NOT REPEAT THESE)
 | What I Tried | Why It Failed | What To Do Instead |
@@ -25,7 +27,7 @@
 | Previous sessions wrote entire app (70+ features) but never git committed | Context cleared → all code lost. bigger_picture.md claimed features existed but repo only had 2-file scaffold | ALWAYS commit + push after writing code. Added mandatory rules to CLAUDE.md DURING WORK and BEFORE CONTEXT CLEAR sections |
 
 ### Open Questions (need human input)
--
+- No test user account exists in Supabase — user needs to create one or give permission to create via Supabase admin API
 
 ---
 
@@ -34,10 +36,10 @@
 <!-- Before context clear: copy Current Session to here, then write RESUME BRIEF above -->
 <!-- Keep last 3 sessions. Delete oldest when adding new. -->
 
-### Session: <!-- DATE -->
-**Work Done:**
-**Key Learnings:**
-**Handoff:**
+### Session: 2026-02-07
+**Work Done:** Fixed Vercel 404 (force-pushed main→master), made login page static, set function region to Mumbai (bom1)
+**Key Learnings:** Vercel production branch was `master` not `main`; force-dynamic on auth layout was unnecessary; always push to both branches
+**Handoff:** Production live, no test user yet, next step is create test account
 
 ---
 

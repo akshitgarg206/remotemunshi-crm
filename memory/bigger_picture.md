@@ -2,11 +2,11 @@
 
 > **ACTIVE GOAL:** Build Remote Munshi CRM — full Turia clone with REST API + webhooks (Next.js 16 + Supabase)
 >
-> **STATUS:** CODE_RECOVERED_AND_COMMITTED
+> **STATUS:** DEPLOYED_AND_OPTIMIZED
 >
-> **NEXT STEP:** All 254 source files recovered from disk (were never committed), git initialized, committed (312 files / 37,960 LOC), pushed to GitHub. Build passes (97 pages, 71 API routes, 0 errors). Vercel auto-deploy should trigger. Awaiting user direction.
+> **NEXT STEP:** Production live at remotemunshi-crm.vercel.app. No test user account exists yet — need to create one in Supabase Auth + employees table to test login. All code committed and pushed.
 
-**Last Updated:** 2026-02-06
+**Last Updated:** 2026-02-07
 
 ---
 
@@ -73,9 +73,11 @@
 - Dead UI Button Fixes: Removed 3 empty handlers (onAdd×2 on passwords/documents, onExport on clients), created ComingSoon reusable component, created 4 topbar/mobile-nav placeholder pages (sprint-planner, chat, calendar, actions-center), created 14 report sub-route placeholder pages — all previously-404 links now render gracefully
 
 ### What's Left
-1. Verify Vercel deployment works with env vars
-2. Test auth flow end-to-end on live deployment
-3. Any remaining feature additions per user request
+1. ~~Verify Vercel deployment works~~ — DONE (production serving login page, 200 OK)
+2. ~~Performance: login static + Mumbai region~~ — DONE (vercel.json regions: bom1, auth layout force-dynamic removed)
+3. Create test user account (Supabase Auth user + employees row with Super Admin role)
+4. Test auth flow end-to-end on live deployment
+5. Any remaining feature additions per user request
 
 ---
 
@@ -99,6 +101,8 @@
 | 2026-02-06 | Kanban board + Task Templates | dnd-kit Kanban with review guards, task templates via recurring_tasks with CRUD/generate APIs, auto-task creation on deadline generation, 3 template pages, sidebar nav |
 | 2026-02-06 | Contacts + Template Overrides | Contacts separated from clients (N:M), per-client template overrides with additional_steps + notes, both generate routes merge overrides |
 | 2026-02-06 | OmniDesk Omnichannel Support | Full support module: conversations, messages, tickets, escalations, quick replies, AI reply, supervisor portal, realtime messaging |
+| 2026-02-07 | Fixed Vercel 404 — branch mismatch | Production branch `master` had default scaffold (2 routes). Force-pushed `main`→`master` to deploy full CRM |
+| 2026-02-07 | Performance: static login + Mumbai region | Removed force-dynamic from auth layout (login now CDN-cached). Added vercel.json with regions: ["bom1"] |
 
 ### Upcoming
 | Item | Priority | Depends On |
@@ -118,11 +122,14 @@
 | Mistake | Root Cause | Prevention |
 |---------|------------|------------|
 | All app code lost after context clear | Code was written but never git committed/pushed. Memory files documented features that only existed in-session | MANDATORY: commit + push after every feature. Pre-context-clear git check added to CLAUDE.md |
+| Vercel 404 on production | Production branch was `master` (scaffold), CRM code was on `main`. Two unrelated git histories | Always push to BOTH `main` and `master`: `git push origin main && git push origin main:master` |
 
 ### Patterns Discovered
 | Pattern | Context | Document In |
 |---------|---------|-------------|
-| | | |
+| `force-dynamic` on layout makes ALL child routes serverless | Auth layout had it unnecessarily, causing cold starts on login page | Remove force-dynamic unless layout itself does server-side data fetching |
+| Vercel function region defaults to iad1 (Washington DC) | Add `vercel.json` with `"regions": ["bom1"]` for India users | vercel.json at repo root |
+| Vercel production branch ≠ default GitHub branch | Vercel picked `master` as production, we use `main` for development | Push to both or change Vercel production branch setting |
 
 ---
 
