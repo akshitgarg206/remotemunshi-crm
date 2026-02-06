@@ -9,7 +9,9 @@
 <!-- LEARNING LOOP TARGET: Add correct test syntax/commands as you discover them -->
 | Context | Correct Syntax |
 |---------|---------------|
-| | |
+| Build check before push | `npm run prebuild:check` |
+| Full build | `npm run build` |
+| Lint only | `npm run lint` |
 
 ---
 
@@ -96,6 +98,29 @@ Test -> Check Results -> PASS? -> Done
 
 ---
 
+## Pre-Push Build Check (MANDATORY)
+
+**Why:** `next dev` does NOT catch prerender errors. Only `next build` catches them. Previous deploys failed on Vercel because static pages tried to access env vars (Supabase URL) at build time.
+
+**Rule:** Always run `npm run build` before pushing. If it fails, fix before push.
+
+```bash
+# Before every git push:
+npm run build
+# If it passes → safe to push
+# If it fails → fix the error first
+```
+
+**What it catches:**
+- TypeScript errors across all files (not just open ones)
+- Static prerender failures (env vars, server-only APIs called during SSG)
+- Missing imports / broken module resolution
+- Invalid page exports
+
+**Known pattern:** Any page under `(app)/` uses `force-dynamic` because all app pages require Supabase auth. If a new layout or page group is added without `export const dynamic = 'force-dynamic'`, prerender will fail on Vercel where env vars aren't available at build time.
+
+---
+
 ## Common Pitfalls
 
 <!-- LEARNING LOOP TARGET: Add things that DON'T work here -->
@@ -106,6 +131,8 @@ Test -> Check Results -> PASS? -> Done
 | No logging | "I remember what happened" | Write results to test_results.md |
 | Skipping re-test | "The fix should work" | Always re-run the failing test |
 | Testing too much at once | Run all tests blindly | Focus on the changed area first |
+| Skipping build check before push | "It works in dev" | Run `npm run build` — dev mode skips prerender |
+| Static page with Supabase client | Page prerenders without env vars | Add `export const dynamic = 'force-dynamic'` to layout |
 
 ---
 
