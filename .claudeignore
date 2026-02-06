@@ -1,0 +1,45 @@
+# Exclude large or irrelevant files from Claude context
+
+# Temporary and generated files
+*.log
+*.tmp
+.DS_Store
+Thumbs.db
+
+# Large data files
+*.csv
+*.xlsx
+*.pdf
+*.zip
+*.tar.gz
+
+# Dependencies
+node_modules/
+vendor/
+__pycache__/
+.venv/
+venv/
+
+# Build output
+dist/
+build/
+out/
+.next/
+target/
+
+# Git internals
+.git/
+.gitignore
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Environment and secrets (NEVER include)
+.env
+.env.*
+*.pem
+*.key
+credentials.json
