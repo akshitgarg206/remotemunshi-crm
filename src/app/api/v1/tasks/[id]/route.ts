@@ -45,7 +45,7 @@ export const GET = apiHandler(async (req, { params, supabase }) => {
     .order('created_at', { ascending: true })
 
   return NextResponse.json({ success: true, data: { ...data, sub_tasks: subTasks || [] } })
-})
+}, { requirePermission: { module: 'tasks', action: 'read' } })
 
 export const PUT = apiHandler(async (req, { params, supabase, employeeId }) => {
   const body = await req.json()
@@ -115,7 +115,7 @@ export const PUT = apiHandler(async (req, { params, supabase, employeeId }) => {
   }
 
   return NextResponse.json({ success: true, data })
-})
+}, { requirePermission: { module: 'tasks', action: 'update' } })
 
 export const DELETE = apiHandler(async (req, { params, supabase }) => {
   const { error } = await supabase
@@ -125,4 +125,4 @@ export const DELETE = apiHandler(async (req, { params, supabase }) => {
 
   if (error) throw error
   return NextResponse.json({ success: true, data: { id: params.id, deleted: true } })
-})
+}, { requirePermission: { module: 'tasks', action: 'delete' } })

@@ -27,12 +27,6 @@ export function parseCsvContent(
     transformHeader: (h: string) => h.trim(),
   })
 
-  // Map CSV headers to field names
-  const headerMap: Record<string, string> = {}
-  template.columns.forEach((col) => {
-    headerMap[col.header] = col.field
-  })
-
   const errors: ImportError[] = []
   const rows: Record<string, string>[] = []
 
@@ -70,8 +64,23 @@ export function parseCsvContent(
         hasError = true
       }
 
+      // Enum validation
+      if (value && col.enum && !col.enum.includes(value)) {
+        errors.push({
+          row: idx + 2,
+          field: col.header,
+          message: `Invalid value "${value}". Must be one of: ${col.enum.join(', ')}`,
+        })
+        hasError = true
+      }
+
+      // Lookup fields store the raw value for now — resolved in the import route
       if (value) {
-        row[col.field] = col.type === 'number' ? String(Number(value)) : value
+        if (col.lookup === 'client_id') {
+          row[col.field] = value // Stored as business_name, resolved to UUID in import route
+        } else {
+          row[col.field] = col.type === 'number' ? String(Number(value)) : value
+        }
       }
     })
 

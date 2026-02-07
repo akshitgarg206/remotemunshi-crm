@@ -2,9 +2,9 @@
 
 > **ACTIVE GOAL:** Build Remote Munshi CRM — full Turia clone with REST API + webhooks (Next.js 16 + Supabase)
 >
-> **STATUS:** DEPLOYED_AND_OPTIMIZED
+> **STATUS:** IN_PROGRESS
 >
-> **NEXT STEP:** Production live at remotemunshi-crm.vercel.app. No test user account exists yet — need to create one in Supabase Auth + employees table to test login. All code committed and pushed.
+> **NEXT STEP:** Implementing RBAC enforcement (apiHandler requirePermission, usePermissions hook, sidebar filtering, route wiring) + CSV import fixes (client_id lookup, enum validation, per-row insert, team auth user creation)
 
 **Last Updated:** 2026-02-07
 

@@ -89,4 +89,4 @@ export const POST = apiHandler(async (req, { params, supabase, employeeId }) => 
   }
 
   return NextResponse.json({ success: true, data: { lead_id: params.id, client } }, { status: 201 })
-})
+}, { requirePermission: { module: 'leads', action: 'update' } })

@@ -20,7 +20,7 @@ export const GET = apiHandler(async (req, { params, supabase }) => {
 
   if (error) throw error
   return NextResponse.json({ success: true, data })
-})
+}, { requirePermission: { module: 'tasks', action: 'read' } })
 
 export const POST = apiHandler(async (req, { params, supabase }) => {
   const body = await req.json()
@@ -34,7 +34,7 @@ export const POST = apiHandler(async (req, { params, supabase }) => {
 
   if (error) throw error
   return NextResponse.json({ success: true, data }, { status: 201 })
-})
+}, { requirePermission: { module: 'tasks', action: 'create' } })
 
 export const PATCH = apiHandler(async (req, { params, supabase, employeeId }) => {
   const body = await req.json()
@@ -54,4 +54,4 @@ export const PATCH = apiHandler(async (req, { params, supabase, employeeId }) =>
 
   if (error) throw error
   return NextResponse.json({ success: true, data })
-})
+}, { requirePermission: { module: 'tasks', action: 'update' } })

@@ -1,9 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { ZodError, ZodSchema } from 'zod'
+import { ZodError } from 'zod'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
+
+interface RequirePermission {
+  module: string
+  action: 'create' | 'read' | 'update' | 'delete' | 'export'
+}
 
 interface ApiHandlerOptions {
   requireAuth?: boolean
+  requirePermission?: RequirePermission
 }
 
 type HandlerFn = (
@@ -22,7 +28,7 @@ export function apiHandler(handler: HandlerFn, options: ApiHandlerOptions = { re
       const supabase = await createServerSupabaseClient()
       let userId: string | null = null
 
-      if (options.requireAuth) {
+      if (options.requireAuth !== false) {
         // Check for API key first
         const authHeader = req.headers.get('authorization')
         if (authHeader?.startsWith('Bearer rm_api_key_')) {
@@ -45,10 +51,37 @@ export function apiHandler(handler: HandlerFn, options: ApiHandlerOptions = { re
       if (userId && userId !== 'api-key-user') {
         const { data: emp } = await supabase
           .from('employees')
-          .select('id')
+          .select('id, role_id, is_admin')
           .eq('auth_user_id', userId)
           .single()
         employeeId = emp?.id || null
+
+        // Permission check
+        if (options.requirePermission && emp) {
+          if (!emp.is_admin) {
+            const { data: perm } = await supabase
+              .from('role_permissions')
+              .select('allowed, scope')
+              .eq('role_id', emp.role_id)
+              .eq('module', options.requirePermission.module)
+              .eq('action', options.requirePermission.action)
+              .single()
+
+            if (!perm?.allowed) {
+              return NextResponse.json(
+                {
+                  success: false,
+                  error: {
+                    code: 'FORBIDDEN',
+                    message: `You don't have permission to ${options.requirePermission.action} ${options.requirePermission.module}`,
+                  },
+                },
+                { status: 403 }
+              )
+            }
+          }
+          // Admins bypass permission checks
+        }
       }
 
       const params = await routeContext.params

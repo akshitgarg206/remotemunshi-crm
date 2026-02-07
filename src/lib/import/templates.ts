@@ -4,6 +4,8 @@ export interface CsvColumn {
   required: boolean
   type: 'string' | 'number' | 'date' | 'email' | 'boolean'
   example: string
+  enum?: readonly string[]
+  lookup?: 'client_id'
 }
 
 export interface CsvTemplate {
@@ -21,7 +23,7 @@ export const CSV_TEMPLATES: Record<string, CsvTemplate> = {
       { header: 'Contact Name', field: 'contact_name', required: false, type: 'string', example: 'John Doe' },
       { header: 'Mobile', field: 'mobile', required: false, type: 'string', example: '9876543210' },
       { header: 'Email', field: 'email', required: false, type: 'email', example: 'john@acme.com' },
-      { header: 'Business Entity', field: 'business_entity', required: false, type: 'string', example: 'pvt_ltd' },
+      { header: 'Business Entity', field: 'business_entity', required: false, type: 'string', example: 'pvt_ltd', enum: ['proprietorship', 'partnership', 'llp', 'pvt_ltd', 'public_ltd', 'opc', 'trust', 'society', 'huf', 'individual', 'other'] },
       { header: 'GSTIN', field: 'gstin', required: false, type: 'string', example: '27AABCU9603R1ZM' },
       { header: 'PAN', field: 'pan', required: false, type: 'string', example: 'AABCU9603R' },
       { header: 'Address', field: 'address', required: false, type: 'string', example: '123 Main St' },
@@ -38,7 +40,7 @@ export const CSV_TEMPLATES: Record<string, CsvTemplate> = {
       { header: 'Contact Person', field: 'contact_person', required: false, type: 'string', example: 'Jane Smith' },
       { header: 'Contact No', field: 'contact_no', required: false, type: 'string', example: '9876543210' },
       { header: 'Email', field: 'email', required: false, type: 'email', example: 'jane@xyz.com' },
-      { header: 'Source', field: 'source', required: false, type: 'string', example: 'referral' },
+      { header: 'Source', field: 'source', required: false, type: 'string', example: 'referral', enum: ['website', 'referral', 'social_media', 'cold_call', 'walk_in', 'other'] },
       { header: 'Notes', field: 'notes', required: false, type: 'string', example: 'Interested in GST services' },
     ],
   },
@@ -57,8 +59,8 @@ export const CSV_TEMPLATES: Record<string, CsvTemplate> = {
     table: 'tasks',
     columns: [
       { header: 'Task Name', field: 'task_name', required: true, type: 'string', example: 'File GSTR-3B' },
-      { header: 'Priority', field: 'priority', required: false, type: 'string', example: 'medium' },
-      { header: 'Status', field: 'status', required: false, type: 'string', example: 'pending' },
+      { header: 'Priority', field: 'priority', required: false, type: 'string', example: 'medium', enum: ['low', 'medium', 'high', 'urgent'] },
+      { header: 'Status', field: 'status', required: false, type: 'string', example: 'pending', enum: ['pending', 'in_progress', 'in_review', 'request_changes', 'completed', 'on_hold', 'cancelled'] },
       { header: 'Due Date', field: 'due_date', required: false, type: 'date', example: '2025-03-31' },
       { header: 'Estimated Hours', field: 'estimated_hours', required: false, type: 'number', example: '2' },
     ],
@@ -70,7 +72,7 @@ export const CSV_TEMPLATES: Record<string, CsvTemplate> = {
       { header: 'Name', field: 'name', required: true, type: 'string', example: 'Rahul Sharma' },
       { header: 'Email', field: 'email', required: true, type: 'email', example: 'rahul@remotemunshi.com' },
       { header: 'Mobile', field: 'mobile', required: false, type: 'string', example: '9876543210' },
-      { header: 'Status', field: 'status', required: false, type: 'string', example: 'active' },
+      { header: 'Status', field: 'status', required: false, type: 'string', example: 'active', enum: ['active', 'inactive', 'on_leave', 'terminated'] },
       { header: 'Join Date', field: 'join_date', required: false, type: 'date', example: '2024-01-15' },
     ],
   },
@@ -78,11 +80,12 @@ export const CSV_TEMPLATES: Record<string, CsvTemplate> = {
     module: 'dscs',
     table: 'dscs',
     columns: [
+      { header: 'Client Name', field: 'client_id', required: true, type: 'string', example: 'Acme Corp', lookup: 'client_id' },
       { header: 'Holder Name', field: 'holder_name', required: true, type: 'string', example: 'Amit Patel' },
-      { header: 'Class', field: 'class', required: false, type: 'string', example: 'class_3' },
+      { header: 'Class', field: 'class', required: false, type: 'string', example: 'class_3', enum: ['class_2', 'class_3'] },
       { header: 'Issued Date', field: 'issued_date', required: false, type: 'date', example: '2024-06-01' },
       { header: 'Expiry Date', field: 'expiry_date', required: false, type: 'date', example: '2026-06-01' },
-      { header: 'Location', field: 'location', required: false, type: 'string', example: 'with_us' },
+      { header: 'Location', field: 'location', required: false, type: 'string', example: 'with_us', enum: ['with_us', 'with_client', 'with_vendor', 'other'] },
       { header: 'Vendor', field: 'vendor', required: false, type: 'string', example: 'eMudhra' },
     ],
   },
@@ -90,6 +93,7 @@ export const CSV_TEMPLATES: Record<string, CsvTemplate> = {
     module: 'licenses',
     table: 'licenses',
     columns: [
+      { header: 'Client Name', field: 'client_id', required: true, type: 'string', example: 'Acme Corp', lookup: 'client_id' },
       { header: 'License Name', field: 'license_name', required: true, type: 'string', example: 'Trade License' },
       { header: 'Registration No', field: 'registration_no', required: false, type: 'string', example: 'TL-2024-001' },
       { header: 'Issuing Authority', field: 'issuing_authority', required: false, type: 'string', example: 'BMC' },
@@ -101,22 +105,24 @@ export const CSV_TEMPLATES: Record<string, CsvTemplate> = {
     module: 'compliance',
     table: 'compliance_entries',
     columns: [
-      { header: 'Compliance Type', field: 'compliance_type', required: true, type: 'string', example: 'gst' },
+      { header: 'Client Name', field: 'client_id', required: true, type: 'string', example: 'Acme Corp', lookup: 'client_id' },
+      { header: 'Compliance Type', field: 'compliance_type', required: true, type: 'string', example: 'gst', enum: ['gst', 'income_tax', 'mca', 'tds', 'other'] },
       { header: 'Form Name', field: 'form_name', required: false, type: 'string', example: 'GSTR-3B' },
       { header: 'Period', field: 'period', required: false, type: 'string', example: 'Jan 2025' },
       { header: 'Due Date', field: 'due_date', required: false, type: 'date', example: '2025-02-20' },
-      { header: 'Status', field: 'status', required: false, type: 'string', example: 'pending' },
+      { header: 'Status', field: 'status', required: false, type: 'string', example: 'pending', enum: ['pending', 'in_progress', 'filed', 'not_applicable'] },
     ],
   },
   notices: {
     module: 'notices',
     table: 'notices',
     columns: [
+      { header: 'Client Name', field: 'client_id', required: true, type: 'string', example: 'Acme Corp', lookup: 'client_id' },
       { header: 'Section', field: 'section', required: false, type: 'string', example: '143(1)' },
       { header: 'Assessment Year', field: 'assessment_year', required: false, type: 'string', example: '2024-25' },
       { header: 'Received Date', field: 'received_date', required: false, type: 'date', example: '2025-01-15' },
       { header: 'Due Date', field: 'due_date', required: false, type: 'date', example: '2025-02-15' },
-      { header: 'Status', field: 'status', required: false, type: 'string', example: 'open' },
+      { header: 'Status', field: 'status', required: false, type: 'string', example: 'open', enum: ['open', 'in_progress', 'resolved', 'closed'] },
       { header: 'Remarks', field: 'remarks', required: false, type: 'string', example: 'Response pending' },
     ],
   },

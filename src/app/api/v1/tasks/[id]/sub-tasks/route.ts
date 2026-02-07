@@ -16,7 +16,7 @@ export const GET = apiHandler(async (req, { params, supabase }) => {
 
   if (error) throw error
   return NextResponse.json({ success: true, data })
-})
+}, { requirePermission: { module: 'tasks', action: 'read' } })
 
 export const POST = apiHandler(async (req, { params, supabase, employeeId }) => {
   // Prevent nesting beyond 2 levels: check if parent is itself a sub-task
@@ -71,4 +71,4 @@ export const POST = apiHandler(async (req, { params, supabase, employeeId }) => 
   }
 
   return NextResponse.json({ success: true, data: task }, { status: 201 })
-})
+}, { requirePermission: { module: 'tasks', action: 'create' } })

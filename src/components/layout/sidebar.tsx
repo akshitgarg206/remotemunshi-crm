@@ -10,34 +10,42 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useSidebarStore } from '@/stores/sidebar-store'
+import { usePermissions } from '@/hooks/use-permissions'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { ScrollArea } from '@/components/ui/scroll-area'
 
 const navItems = [
-  { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { label: 'Leads', href: '/leads', icon: UserPlus },
-  { label: 'Clients', href: '/client', icon: Users },
-  { label: 'Services', href: '/services', icon: Briefcase },
-  { label: 'Bundles', href: '/bundles', icon: Package },
-  { label: 'Tasks', href: '/task', icon: CheckSquare },
-  { label: 'Task Templates', href: '/task/templates', icon: Repeat },
-  { label: 'Digital Signature', href: '/digital-signature', icon: FileKey },
-  { label: 'Licenses', href: '/license', icon: Award },
-  { label: 'Passwords', href: '/passwords', icon: Lock },
-  { label: 'Documents', href: '/documents', icon: FileText },
-  { label: 'Compliance', href: '/compliance-tracker', icon: ClipboardCheck },
-  { label: 'Data Tracker', href: '/data-tracker', icon: CalendarClock },
-  { label: 'OmniDesk', href: '/support', icon: Headphones },
-  { label: 'Team', href: '/team', icon: UsersRound },
-  { label: 'Notices', href: '/notice-management', icon: AlertTriangle },
-  { label: 'Reports', href: '/reports', icon: BarChart3 },
-  { label: 'Settings', href: '/settings', icon: Settings },
+  { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, module: null },
+  { label: 'Leads', href: '/leads', icon: UserPlus, module: 'leads' },
+  { label: 'Clients', href: '/client', icon: Users, module: 'clients' },
+  { label: 'Services', href: '/services', icon: Briefcase, module: 'services' },
+  { label: 'Bundles', href: '/bundles', icon: Package, module: 'bundles' },
+  { label: 'Tasks', href: '/task', icon: CheckSquare, module: 'tasks' },
+  { label: 'Task Templates', href: '/task/templates', icon: Repeat, module: 'tasks' },
+  { label: 'Digital Signature', href: '/digital-signature', icon: FileKey, module: 'dscs' },
+  { label: 'Licenses', href: '/license', icon: Award, module: 'licenses' },
+  { label: 'Passwords', href: '/passwords', icon: Lock, module: 'passwords' },
+  { label: 'Documents', href: '/documents', icon: FileText, module: 'documents' },
+  { label: 'Compliance', href: '/compliance-tracker', icon: ClipboardCheck, module: 'compliance' },
+  { label: 'Data Tracker', href: '/data-tracker', icon: CalendarClock, module: 'services' },
+  { label: 'OmniDesk', href: '/support', icon: Headphones, module: 'communications' },
+  { label: 'Team', href: '/team', icon: UsersRound, module: 'team' },
+  { label: 'Notices', href: '/notice-management', icon: AlertTriangle, module: 'notices' },
+  { label: 'Reports', href: '/reports', icon: BarChart3, module: 'reports' },
+  { label: 'Settings', href: '/settings', icon: Settings, module: 'settings' },
 ]
 
 export function Sidebar() {
   const pathname = usePathname()
   const { isCollapsed, setCollapsed } = useSidebarStore()
+  const { canRead, isAdmin, isLoading } = usePermissions()
+
+  const visibleItems = navItems.filter((item) => {
+    if (!item.module) return true // Dashboard always visible
+    if (isLoading) return true // Show all while loading
+    return canRead(item.module)
+  })
 
   return (
     <aside
@@ -69,7 +77,7 @@ export function Sidebar() {
       <ScrollArea className="h-[calc(100vh-7rem)]">
         <TooltipProvider delayDuration={0}>
           <nav className="flex flex-col gap-1 p-2">
-            {navItems.map((item) => {
+            {visibleItems.map((item) => {
               const isActive = pathname.startsWith(item.href)
               const Icon = item.icon
 

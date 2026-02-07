@@ -37,7 +37,7 @@ export const GET = apiHandler(async (req, { supabase }) => {
     data,
     meta: paginationMeta(count || 0, page, pageSize),
   })
-})
+}, { requirePermission: { module: 'clients', action: 'read' } })
 
 // POST /api/v1/clients — Create client
 export const POST = apiHandler(async (req, { supabase, employeeId }) => {
@@ -79,4 +79,4 @@ export const POST = apiHandler(async (req, { supabase, employeeId }) => {
   }
 
   return NextResponse.json({ success: true, data: client }, { status: 201 })
-})
+}, { requirePermission: { module: 'clients', action: 'create' } })

@@ -11,4 +11,4 @@ export const GET = apiHandler(async (req, { supabase }) => {
   if (error) throw error
 
   return NextResponse.json({ success: true, data })
-})
+}, { requirePermission: { module: 'clients', action: 'read' } })
