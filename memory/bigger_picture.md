@@ -2,9 +2,9 @@
 
 > **ACTIVE GOAL:** Build Remote Munshi CRM — full Turia clone with REST API + webhooks (Next.js 16 + Supabase)
 >
-> **STATUS:** DEPLOYED_AND_OPTIMIZED
+> **STATUS:** PLANNING_COMPLETE
 >
-> **NEXT STEP:** Client onboarding feature code complete & pushed. Next: apply migration 00024 to Supabase (via MCP or SQL editor), then test end-to-end.
+> **NEXT STEP:** Execute Contact Portal plan at `.claude/plans/vivid-kindling-reef.md`. Phase 1: migration 00025 + portal-handler + middleware + auth routes. User will add Google Stitch MCP for UI. Migration 00024 applied. Test user exists (akshit@remotemunshi.com, Super Admin, is_admin=true).
 
 **Last Updated:** 2026-02-07
 
@@ -76,9 +76,10 @@
 ### What's Left
 1. ~~Verify Vercel deployment works~~ — DONE (production serving login page, 200 OK)
 2. ~~Performance: login static + Mumbai region~~ — DONE (vercel.json regions: bom1, auth layout force-dynamic removed)
-3. Create test user account (Supabase Auth user + employees row with Super Admin role)
-4. Test auth flow end-to-end on live deployment
-5. Any remaining feature additions per user request
+3. ~~Create test user account~~ — DONE (akshit@remotemunshi.com, Super Admin, is_admin=true)
+4. Execute Contact Portal plan (`.claude/plans/vivid-kindling-reef.md`)
+5. Test auth flow end-to-end on live deployment
+6. Any remaining feature additions per user request
 
 ---
 
@@ -109,6 +110,9 @@
 | 2026-02-07 | Forgot/reset password flow | /forgot-password page, /reset-password page, "Forgot password?" link on login |
 | 2026-02-07 | Account transfer + auth lifecycle | Team PUT handles email change (syncs auth), password reset trigger; Team DELETE bans auth user |
 | 2026-02-07 | Client onboarding templates | Migration 00024, trigger_type enum, validator with superRefine, generateOnboardingTasks utility, API guards/filters, client+lead hooks, UI toggle/tabs/conditional display |
+| 2026-02-07 | Migration 00024 applied to Supabase | template_trigger_type enum, trigger_type column, frequency nullable, partial index |
+| 2026-02-07 | Test user configured | akshit@remotemunshi.com: Super Admin role, is_admin=true, Partner designation, Accounts dept |
+| 2026-02-07 | Contact Portal planned | Full plan at .claude/plans/vivid-kindling-reef.md — 4 phases: auth foundation, API routes, UI pages, filing downloads (future) |
 
 ### Upcoming
 | Item | Priority | Depends On |
