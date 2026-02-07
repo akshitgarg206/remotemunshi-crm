@@ -17,7 +17,7 @@ export const GET = portalHandler(async (req, { supabase, clientIds, params }) =>
 
   const { data, count, error } = await supabase
     .from('documents_in_out')
-    .select('id, document_type, direction, description, date, status, created_at', { count: 'exact' })
+    .select('id, document_name, person, date, direction, returned_date, remarks, created_at', { count: 'exact' })
     .eq('client_id', id)
     .is('deleted_at', null)
     .order('date', { ascending: false })

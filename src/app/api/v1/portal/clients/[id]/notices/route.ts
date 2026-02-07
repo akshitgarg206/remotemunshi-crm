@@ -13,10 +13,10 @@ export const GET = portalHandler(async (req, { supabase, clientIds, params }) =>
 
   const { data, error } = await supabase
     .from('notices')
-    .select('id, notice_type, authority, notice_date, due_date, status, description, created_at')
+    .select('id, section, assessment_year, date_of_issue, date_of_receipt, due_date, response_date, status, remarks, created_at, notice_types:notice_type_id(name)')
     .eq('client_id', id)
     .is('deleted_at', null)
-    .order('notice_date', { ascending: false })
+    .order('date_of_issue', { ascending: false })
 
   if (error) {
     return NextResponse.json(

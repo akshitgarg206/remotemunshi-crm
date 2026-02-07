@@ -17,7 +17,7 @@ export const GET = portalHandler(async (req, { supabase, clientIds, params }) =>
 
   const { data, count, error } = await supabase
     .from('compliance_entries')
-    .select('id, form_type, financial_year, status, due_date, filing_date, ack_number, created_at', { count: 'exact' })
+    .select('id, compliance_type, form_name, period, status, due_date, filed_date, acknowledgement_no, remarks, created_at', { count: 'exact' })
     .eq('client_id', id)
     .is('deleted_at', null)
     .order('due_date', { ascending: false })

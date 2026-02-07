@@ -13,10 +13,10 @@ export const GET = portalHandler(async (req, { supabase, clientIds, params }) =>
 
   const { data, error } = await supabase
     .from('dscs')
-    .select('id, holder_name, pan, certificate_type, issuer, valid_from, valid_until, status, created_at')
+    .select('id, holder_name, pan, class, vendor, issued_date, expiry_date, location, status, created_at')
     .eq('client_id', id)
     .is('deleted_at', null)
-    .order('valid_until', { ascending: true })
+    .order('expiry_date', { ascending: true })
 
   if (error) {
     return NextResponse.json(

@@ -10,54 +10,51 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { ArrowLeft, Building2, FileText, CheckSquare, CalendarClock, Shield, KeySquare, Scale, AlertTriangle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
-// Types
+// Types matching actual DB columns
 interface Client {
   id: string
   business_name: string
-  entity_type: string | null
+  business_entity: string | null
   pan: string | null
   gstin: string | null
   tan: string | null
   cin: string | null
   email: string | null
-  phone: string | null
   mobile: string | null
-  website: string | null
   address: string | null
   city: string | null
   state: string | null
   pincode: string | null
-  country: string | null
   status: string
-  client_services: { service_id: string; services: { id: string; name: string; category: { name: string } | null } }[]
+  client_services: { service_id: string; services: { id: string; name: string } }[]
 }
 
 interface Task {
-  id: string; title: string; status: string; priority: string; due_date: string | null; created_at: string; services: { name: string } | null
+  id: string; task_name: string; status: string; priority: string; due_date: string | null; created_at: string; services: { name: string } | null
 }
 
 interface Deadline {
-  id: string; period_label: string; due_date: string; status: string; filed_date: string | null; services: { name: string } | null
+  id: string; period_label: string; due_date: string; status: string; data_received: boolean; notes: string | null; services: { name: string } | null
 }
 
 interface ComplianceEntry {
-  id: string; form_type: string; financial_year: string; status: string; due_date: string | null; filing_date: string | null; ack_number: string | null
+  id: string; compliance_type: string; form_name: string | null; period: string | null; status: string; due_date: string | null; filed_date: string | null; acknowledgement_no: string | null
 }
 
 interface DSC {
-  id: string; holder_name: string; pan: string | null; certificate_type: string; issuer: string | null; valid_from: string; valid_until: string; status: string
+  id: string; holder_name: string; pan: string | null; class: string | null; vendor: string | null; issued_date: string | null; expiry_date: string | null; status: string
 }
 
 interface License {
-  id: string; license_type: string; license_number: string | null; issuing_authority: string | null; issue_date: string | null; expiry_date: string | null; status: string
+  id: string; license_name: string | null; license_type: string | null; registration_no: string | null; issuing_authority: string | null; issued_date: string | null; expiry_date: string | null
 }
 
 interface Notice {
-  id: string; notice_type: string; authority: string | null; notice_date: string; due_date: string | null; status: string; description: string | null
+  id: string; section: string | null; assessment_year: string | null; date_of_issue: string | null; due_date: string | null; status: string; remarks: string | null; notice_types: { name: string } | null
 }
 
 interface Document {
-  id: string; document_type: string; direction: string; description: string | null; date: string; status: string
+  id: string; document_name: string | null; person: string | null; date: string; direction: string; returned_date: string | null; remarks: string | null
 }
 
 function formatDate(d: string | null) {
@@ -146,7 +143,7 @@ export default function PortalClientDetailPage() {
         <div>
           <h1 className="text-2xl font-bold">{client.business_name}</h1>
           <p className="text-sm text-muted-foreground">
-            {[client.entity_type, client.city, client.state].filter(Boolean).join(' — ')}
+            {[client.business_entity, client.city, client.state].filter(Boolean).join(' — ')}
           </p>
         </div>
         <StatusBadge status={client.status} />
@@ -166,9 +163,7 @@ export default function PortalClientDetailPage() {
             {client.tan && <div><span className="text-muted-foreground">TAN:</span> {client.tan}</div>}
             {client.cin && <div><span className="text-muted-foreground">CIN:</span> {client.cin}</div>}
             {client.email && <div><span className="text-muted-foreground">Email:</span> {client.email}</div>}
-            {client.phone && <div><span className="text-muted-foreground">Phone:</span> {client.phone}</div>}
             {client.mobile && <div><span className="text-muted-foreground">Mobile:</span> {client.mobile}</div>}
-            {client.website && <div><span className="text-muted-foreground">Website:</span> {client.website}</div>}
             {client.address && (
               <div className="sm:col-span-2">
                 <span className="text-muted-foreground">Address:</span>{' '}
@@ -211,7 +206,7 @@ export default function PortalClientDetailPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Title</TableHead>
+                      <TableHead>Task</TableHead>
                       <TableHead>Service</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Priority</TableHead>
@@ -221,7 +216,7 @@ export default function PortalClientDetailPage() {
                   <TableBody>
                     {tasks.map((t) => (
                       <TableRow key={t.id}>
-                        <TableCell className="font-medium">{t.title}</TableCell>
+                        <TableCell className="font-medium">{t.task_name}</TableCell>
                         <TableCell>{t.services?.name ?? '—'}</TableCell>
                         <TableCell><StatusBadge status={t.status} /></TableCell>
                         <TableCell><Badge variant="outline">{t.priority}</Badge></TableCell>
@@ -249,7 +244,7 @@ export default function PortalClientDetailPage() {
                       <TableHead>Service</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Due Date</TableHead>
-                      <TableHead>Filed Date</TableHead>
+                      <TableHead>Data Received</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -259,7 +254,7 @@ export default function PortalClientDetailPage() {
                         <TableCell>{d.services?.name ?? '—'}</TableCell>
                         <TableCell><StatusBadge status={d.status} /></TableCell>
                         <TableCell>{formatDate(d.due_date)}</TableCell>
-                        <TableCell>{formatDate(d.filed_date)}</TableCell>
+                        <TableCell>{d.data_received ? 'Yes' : 'No'}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -279,23 +274,25 @@ export default function PortalClientDetailPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Form Type</TableHead>
-                      <TableHead>Financial Year</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Form</TableHead>
+                      <TableHead>Period</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Due Date</TableHead>
-                      <TableHead>Filing Date</TableHead>
+                      <TableHead>Filed Date</TableHead>
                       <TableHead>Ack No.</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {compliance.map((c) => (
                       <TableRow key={c.id}>
-                        <TableCell className="font-medium">{c.form_type}</TableCell>
-                        <TableCell>{c.financial_year}</TableCell>
+                        <TableCell className="font-medium">{c.compliance_type}</TableCell>
+                        <TableCell>{c.form_name ?? '—'}</TableCell>
+                        <TableCell>{c.period ?? '—'}</TableCell>
                         <TableCell><StatusBadge status={c.status} /></TableCell>
                         <TableCell>{formatDate(c.due_date)}</TableCell>
-                        <TableCell>{formatDate(c.filing_date)}</TableCell>
-                        <TableCell>{c.ack_number ?? '—'}</TableCell>
+                        <TableCell>{formatDate(c.filed_date)}</TableCell>
+                        <TableCell>{c.acknowledgement_no ?? '—'}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -315,21 +312,21 @@ export default function PortalClientDetailPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Type</TableHead>
+                      <TableHead>Document</TableHead>
+                      <TableHead>Person</TableHead>
                       <TableHead>Direction</TableHead>
-                      <TableHead>Description</TableHead>
                       <TableHead>Date</TableHead>
-                      <TableHead>Status</TableHead>
+                      <TableHead>Returned</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {documents.map((d) => (
                       <TableRow key={d.id}>
-                        <TableCell className="font-medium">{d.document_type}</TableCell>
+                        <TableCell className="font-medium">{d.document_name ?? '—'}</TableCell>
+                        <TableCell>{d.person ?? '—'}</TableCell>
                         <TableCell><Badge variant="outline">{d.direction}</Badge></TableCell>
-                        <TableCell>{d.description ?? '—'}</TableCell>
                         <TableCell>{formatDate(d.date)}</TableCell>
-                        <TableCell><StatusBadge status={d.status} /></TableCell>
+                        <TableCell>{formatDate(d.returned_date)}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -351,9 +348,10 @@ export default function PortalClientDetailPage() {
                     <TableRow>
                       <TableHead>Holder</TableHead>
                       <TableHead>PAN</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Valid From</TableHead>
-                      <TableHead>Valid Until</TableHead>
+                      <TableHead>Class</TableHead>
+                      <TableHead>Vendor</TableHead>
+                      <TableHead>Issued</TableHead>
+                      <TableHead>Expiry</TableHead>
                       <TableHead>Status</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -362,9 +360,10 @@ export default function PortalClientDetailPage() {
                       <TableRow key={d.id}>
                         <TableCell className="font-medium">{d.holder_name}</TableCell>
                         <TableCell>{d.pan ?? '—'}</TableCell>
-                        <TableCell>{d.certificate_type}</TableCell>
-                        <TableCell>{formatDate(d.valid_from)}</TableCell>
-                        <TableCell>{formatDate(d.valid_until)}</TableCell>
+                        <TableCell>{d.class ?? '—'}</TableCell>
+                        <TableCell>{d.vendor ?? '—'}</TableCell>
+                        <TableCell>{formatDate(d.issued_date)}</TableCell>
+                        <TableCell>{formatDate(d.expiry_date)}</TableCell>
                         <TableCell><StatusBadge status={d.status} /></TableCell>
                       </TableRow>
                     ))}
@@ -385,23 +384,23 @@ export default function PortalClientDetailPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead>Name</TableHead>
                       <TableHead>Type</TableHead>
-                      <TableHead>Number</TableHead>
+                      <TableHead>Reg. No.</TableHead>
                       <TableHead>Authority</TableHead>
-                      <TableHead>Issue Date</TableHead>
-                      <TableHead>Expiry Date</TableHead>
-                      <TableHead>Status</TableHead>
+                      <TableHead>Issued</TableHead>
+                      <TableHead>Expiry</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {licenses.map((l) => (
                       <TableRow key={l.id}>
-                        <TableCell className="font-medium">{l.license_type}</TableCell>
-                        <TableCell>{l.license_number ?? '—'}</TableCell>
+                        <TableCell className="font-medium">{l.license_name ?? '—'}</TableCell>
+                        <TableCell>{l.license_type ?? '—'}</TableCell>
+                        <TableCell>{l.registration_no ?? '—'}</TableCell>
                         <TableCell>{l.issuing_authority ?? '—'}</TableCell>
-                        <TableCell>{formatDate(l.issue_date)}</TableCell>
+                        <TableCell>{formatDate(l.issued_date)}</TableCell>
                         <TableCell>{formatDate(l.expiry_date)}</TableCell>
-                        <TableCell><StatusBadge status={l.status} /></TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -422,8 +421,9 @@ export default function PortalClientDetailPage() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Type</TableHead>
-                      <TableHead>Authority</TableHead>
-                      <TableHead>Notice Date</TableHead>
+                      <TableHead>Section</TableHead>
+                      <TableHead>AY</TableHead>
+                      <TableHead>Issued</TableHead>
                       <TableHead>Due Date</TableHead>
                       <TableHead>Status</TableHead>
                     </TableRow>
@@ -431,9 +431,10 @@ export default function PortalClientDetailPage() {
                   <TableBody>
                     {notices.map((n) => (
                       <TableRow key={n.id}>
-                        <TableCell className="font-medium">{n.notice_type}</TableCell>
-                        <TableCell>{n.authority ?? '—'}</TableCell>
-                        <TableCell>{formatDate(n.notice_date)}</TableCell>
+                        <TableCell className="font-medium">{n.notice_types?.name ?? '—'}</TableCell>
+                        <TableCell>{n.section ?? '—'}</TableCell>
+                        <TableCell>{n.assessment_year ?? '—'}</TableCell>
+                        <TableCell>{formatDate(n.date_of_issue)}</TableCell>
                         <TableCell>{formatDate(n.due_date)}</TableCell>
                         <TableCell><StatusBadge status={n.status} /></TableCell>
                       </TableRow>

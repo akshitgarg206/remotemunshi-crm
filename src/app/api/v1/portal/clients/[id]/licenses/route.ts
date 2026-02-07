@@ -13,7 +13,7 @@ export const GET = portalHandler(async (req, { supabase, clientIds, params }) =>
 
   const { data, error } = await supabase
     .from('licenses')
-    .select('id, license_type, license_number, issuing_authority, issue_date, expiry_date, status, created_at')
+    .select('id, license_name, license_type, registration_no, issuing_authority, issued_date, expiry_date, remarks, created_at')
     .eq('client_id', id)
     .is('deleted_at', null)
     .order('expiry_date', { ascending: true })

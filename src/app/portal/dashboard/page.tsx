@@ -10,7 +10,7 @@ import { Building2, ArrowRight } from 'lucide-react'
 interface Client {
   id: string
   business_name: string
-  entity_type: string | null
+  business_entity: string | null
   pan: string | null
   gstin: string | null
   status: string
@@ -90,7 +90,7 @@ export default function PortalDashboard() {
                   </Badge>
                 </div>
                 <CardDescription>
-                  {[client.entity_type, client.city, client.state].filter(Boolean).join(' — ')}
+                  {[client.business_entity, client.city, client.state].filter(Boolean).join(' — ')}
                 </CardDescription>
               </CardHeader>
               <CardContent>

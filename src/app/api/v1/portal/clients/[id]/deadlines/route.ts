@@ -18,8 +18,9 @@ export const GET = portalHandler(async (req, { supabase, clientIds, params }) =>
 
   let query = supabase
     .from('service_deadlines')
-    .select('id, period_label, due_date, status, filed_date, created_at, services(name)', { count: 'exact' })
+    .select('id, period_label, due_date, status, data_received, data_received_at, notes, created_at, services(name)', { count: 'exact' })
     .eq('client_id', id)
+    .is('deleted_at', null)
 
   if (status) query = query.eq('status', status)
 

@@ -18,10 +18,10 @@ export const GET = portalHandler(async (req, { supabase, clientIds, params }) =>
 
   let query = supabase
     .from('tasks')
-    .select('id, title, status, priority, due_date, created_at, services(name)', { count: 'exact' })
+    .select('id, task_name, status, priority, due_date, created_at, services(name)', { count: 'exact' })
     .eq('client_id', id)
     .is('deleted_at', null)
-    .is('parent_task_id', null) // Only top-level tasks
+    .is('parent_task_id', null)
 
   if (status) query = query.eq('status', status)
 

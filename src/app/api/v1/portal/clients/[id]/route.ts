@@ -14,11 +14,10 @@ export const GET = portalHandler(async (req, { supabase, clientIds, params }) =>
   const { data: client, error } = await supabase
     .from('clients')
     .select(`
-      id, business_name, entity_type, pan, gstin, tan, cin,
-      email, phone, mobile, website,
-      address, city, state, pincode, country,
+      id, business_name, business_entity, pan, gstin, tan, cin,
+      email, mobile, address, city, state, pincode,
       status, created_at,
-      client_services(service_id, services(id, name, category:service_categories(name)))
+      client_services(service_id, services(id, name))
     `)
     .eq('id', id)
     .is('deleted_at', null)

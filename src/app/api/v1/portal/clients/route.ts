@@ -8,7 +8,7 @@ export const GET = portalHandler(async (req, { supabase, clientIds }) => {
 
   const { data: clients, error } = await supabase
     .from('clients')
-    .select('id, business_name, entity_type, pan, gstin, status, city, state, created_at')
+    .select('id, business_name, business_entity, pan, gstin, status, city, state, created_at')
     .in('id', clientIds)
     .is('deleted_at', null)
     .order('business_name')
