@@ -34,6 +34,8 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
+    // Clear the remember-me cookie
+    document.cookie = 'portal_remember=; path=/; max-age=0'
     router.push('/portal/login')
     router.refresh()
   }

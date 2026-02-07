@@ -1,15 +1,33 @@
 'use client'
 
-import { useState } from 'react'
+import { Suspense, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { toast } from 'sonner'
-import { Mail } from 'lucide-react'
+import { Mail, AlertCircle } from 'lucide-react'
+
+const ERROR_MESSAGES: Record<string, string> = {
+  missing_code: 'Invalid login link. Please request a new one.',
+  no_portal_access: 'This account does not have portal access.',
+}
 
 export default function PortalLoginPage() {
+  return (
+    <Suspense>
+      <PortalLoginForm />
+    </Suspense>
+  )
+}
+
+function PortalLoginForm() {
+  const searchParams = useSearchParams()
+  const errorParam = searchParams.get('error')
   const [email, setEmail] = useState('')
+  const [rememberMe, setRememberMe] = useState(true)
   const [loading, setLoading] = useState(false)
   const [sent, setSent] = useState(false)
 
@@ -21,7 +39,7 @@ export default function PortalLoginPage() {
       const res = await fetch('/api/v1/portal/auth/send-magic-link', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, rememberMe }),
       })
 
       const data = await res.json()
@@ -74,6 +92,12 @@ export default function PortalLoginPage() {
         <CardDescription>Enter your email to receive a magic login link</CardDescription>
       </CardHeader>
       <CardContent>
+        {errorParam && (
+          <div className="mb-4 flex items-start gap-2 rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+            <span>{ERROR_MESSAGES[errorParam] || decodeURIComponent(errorParam)}</span>
+          </div>
+        )}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
@@ -86,6 +110,16 @@ export default function PortalLoginPage() {
               required
               autoFocus
             />
+          </div>
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id="rememberMe"
+              checked={rememberMe}
+              onCheckedChange={(checked) => setRememberMe(checked === true)}
+            />
+            <Label htmlFor="rememberMe" className="text-sm font-normal cursor-pointer">
+              Remember me on this device
+            </Label>
           </div>
           <Button type="submit" className="w-full" disabled={loading}>
             {loading ? 'Sending...' : 'Send magic link'}

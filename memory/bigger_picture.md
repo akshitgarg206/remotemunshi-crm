@@ -4,7 +4,7 @@
 >
 > **STATUS:** BUILDING
 >
-> **NEXT STEP:** Contact Portal complete (Phases 1-3). Test end-to-end: create a contact with portal_enabled=true, send magic link, verify login flow. Then test auth flow for employee login on live deployment.
+> **NEXT STEP:** Dummy data inserted (tagged [TEST-PORTAL]). Vercel deploying. Test portal: go to /portal/login, enter akshitgarg206@gmail.com, click magic link, verify dashboard + client detail tabs.
 
 **Last Updated:** 2026-02-07
 

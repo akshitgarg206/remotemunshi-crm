@@ -1,10 +1,25 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
+const REMEMBER_MAX_AGE = 60 * 60 * 24 * 90 // 90 days
+
 export async function updateSession(request: NextRequest) {
+  const pathname = request.nextUrl.pathname
+
+  // Fallback: if Supabase redirects to root with ?code= (Site URL misconfiguration),
+  // forward to the portal callback route so the code gets exchanged properly
+  if (pathname === '/' && request.nextUrl.searchParams.has('code')) {
+    const callbackUrl = new URL('/portal/auth/callback', request.url)
+    callbackUrl.search = request.nextUrl.search
+    return NextResponse.redirect(callbackUrl)
+  }
+
   let supabaseResponse = NextResponse.next({
     request,
   })
+
+  // Check if this is a portal user with "remember me" enabled
+  const isPortalRemember = request.cookies.get('portal_remember')?.value === '1'
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -20,7 +35,11 @@ export async function updateSession(request: NextRequest) {
             request,
           })
           cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
+            supabaseResponse.cookies.set(name, value, {
+              ...options,
+              // Extend cookie lifetime for portal users with "remember me"
+              ...(isPortalRemember ? { maxAge: REMEMBER_MAX_AGE } : {}),
+            })
           )
         },
       },
@@ -30,8 +49,6 @@ export async function updateSession(request: NextRequest) {
   const {
     data: { user },
   } = await supabase.auth.getUser()
-
-  const pathname = request.nextUrl.pathname
 
   // Public routes that don't require auth
   const isPublicRoute =

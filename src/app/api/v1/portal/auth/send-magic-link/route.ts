@@ -5,12 +5,13 @@ import { createServerSupabaseClient } from '@/lib/supabase/server'
 
 const schema = z.object({
   email: z.string().email(),
+  rememberMe: z.boolean().optional().default(true),
 })
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { email } = schema.parse(body)
+    const { email, rememberMe } = schema.parse(body)
 
     const admin = createAdminClient()
 
@@ -64,13 +65,16 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Build redirect URL with remember flag
+    const origin = req.nextUrl.origin
+    const redirectTo = `${origin}/portal/auth/callback${rememberMe ? '?remember=1' : ''}`
+
     // Send magic link via Supabase (uses the server client so cookies are set)
     const supabase = await createServerSupabaseClient()
-    const origin = req.nextUrl.origin
     const { error: otpError } = await supabase.auth.signInWithOtp({
       email,
       options: {
-        emailRedirectTo: `${origin}/portal/auth/callback`,
+        emailRedirectTo: redirectTo,
         shouldCreateUser: false,
       },
     })
