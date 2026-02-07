@@ -2,9 +2,9 @@
 
 > **ACTIVE GOAL:** Build Remote Munshi CRM — full Turia clone with REST API + webhooks (Next.js 16 + Supabase)
 >
-> **STATUS:** IN_PROGRESS
+> **STATUS:** DEPLOYED_AND_OPTIMIZED
 >
-> **NEXT STEP:** Implementing RBAC enforcement (apiHandler requirePermission, usePermissions hook, sidebar filtering, route wiring) + CSV import fixes (client_id lookup, enum validation, per-row insert, team auth user creation)
+> **NEXT STEP:** RBAC + CSV import fixes deployed. All 64 API routes have permission checks. Sidebar filters by role. CSV import has client_id lookup, enum validation, per-row insert, team auth user creation. Next: create test user to verify end-to-end.
 
 **Last Updated:** 2026-02-07
 
@@ -103,6 +103,8 @@
 | 2026-02-06 | OmniDesk Omnichannel Support | Full support module: conversations, messages, tickets, escalations, quick replies, AI reply, supervisor portal, realtime messaging |
 | 2026-02-07 | Fixed Vercel 404 — branch mismatch | Production branch `master` had default scaffold (2 routes). Force-pushed `main`→`master` to deploy full CRM |
 | 2026-02-07 | Performance: static login + Mumbai region | Removed force-dynamic from auth layout (login now CDN-cached). Added vercel.json with regions: ["bom1"] |
+| 2026-02-07 | RBAC enforcement | apiHandler requirePermission, usePermissions hook, sidebar filtering, all 64 routes wired |
+| 2026-02-07 | CSV import fixes | client_id lookup (DSC/License/Compliance/Notice), enum validation, per-row insert, team auth user creation |
 
 ### Upcoming
 | Item | Priority | Depends On |
