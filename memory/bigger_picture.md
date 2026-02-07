@@ -2,9 +2,9 @@
 
 > **ACTIVE GOAL:** Build Remote Munshi CRM — full Turia clone with REST API + webhooks (Next.js 16 + Supabase)
 >
-> **STATUS:** PLANNING_COMPLETE
+> **STATUS:** BUILDING
 >
-> **NEXT STEP:** Execute Contact Portal plan at `.claude/plans/vivid-kindling-reef.md`. Phase 1: migration 00025 + portal-handler + middleware + auth routes. User will add Google Stitch MCP for UI. Migration 00024 applied. Test user exists (akshit@remotemunshi.com, Super Admin, is_admin=true).
+> **NEXT STEP:** Contact Portal complete (Phases 1-3). Test end-to-end: create a contact with portal_enabled=true, send magic link, verify login flow. Then test auth flow for employee login on live deployment.
 
 **Last Updated:** 2026-02-07
 
@@ -77,7 +77,7 @@
 1. ~~Verify Vercel deployment works~~ — DONE (production serving login page, 200 OK)
 2. ~~Performance: login static + Mumbai region~~ — DONE (vercel.json regions: bom1, auth layout force-dynamic removed)
 3. ~~Create test user account~~ — DONE (akshit@remotemunshi.com, Super Admin, is_admin=true)
-4. Execute Contact Portal plan (`.claude/plans/vivid-kindling-reef.md`)
+4. ~~Execute Contact Portal plan~~ — DONE (Phases 1-3: migration, auth, API, UI)
 5. Test auth flow end-to-end on live deployment
 6. Any remaining feature additions per user request
 
@@ -113,6 +113,8 @@
 | 2026-02-07 | Migration 00024 applied to Supabase | template_trigger_type enum, trigger_type column, frequency nullable, partial index |
 | 2026-02-07 | Test user configured | akshit@remotemunshi.com: Super Admin role, is_admin=true, Partner designation, Accounts dept |
 | 2026-02-07 | Contact Portal planned | Full plan at .claude/plans/vivid-kindling-reef.md — 4 phases: auth foundation, API routes, UI pages, filing downloads (future) |
+| 2026-02-07 | Contact Portal built (Phases 1-3) | Migration 00025 (auth_user_id, portal_enabled, RLS for 11 tables), portalHandler, middleware update, magic link auth (send + callback + me), 9 read-only API routes, full portal UI (layout, login, dashboard, client detail with 7 tabs) |
+| 2026-02-07 | Applied missing migrations 00020-00023 | task_template_enhancements, contacts_and_template_overrides, omnidesk, split_managing_partner — all now live in Supabase |
 
 ### Upcoming
 | Item | Priority | Depends On |

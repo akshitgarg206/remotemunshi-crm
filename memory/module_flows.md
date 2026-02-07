@@ -33,6 +33,7 @@
 | 00021 | Contacts & Template Overrides | 3 | contacts, client_contacts (N:M junction), client_template_overrides (per-client template customization) |
 | 00022 | OmniDesk Support | 5 | support_conversations, support_messages, support_tickets, support_escalations, support_quick_replies + 6 enums + v_support_kpis view + ticket_number auto-gen trigger + Supabase Realtime |
 | 00024 | Onboarding Templates | — | ALTER recurring_tasks: trigger_type (recurring/onboarding), frequency nullable + partial index for onboarding lookup |
+| 00025 | Contact Portal | — | ALTER contacts: auth_user_id (UUID FK → auth.users), portal_enabled (BOOLEAN). RLS policies on 11 tables for portal read access. |
 
 ### 1.2 Core FK Relationships
 
@@ -237,6 +238,9 @@ All 9 list pages follow: KPI cards → Tabs → DataGrid (search, sort, paginati
 | Support → Notifications | entity_type + entity_id | ticket_created, ticket_escalated, conversation_assigned, escalation_received |
 | Supabase Realtime → support_messages/conversations | postgres_changes | Live message + conversation updates |
 | Claude API → AI Reply | /api/v1/support/ai-reply | Agent-reviewed AI-generated replies |
+| Portal Auth → Contacts | auth_user_id FK | Magic link auth creates Supabase auth user linked to contact |
+| Portal → Clients | client_contacts junction | Contacts see only their linked clients (read-only) |
+| Portal → Tasks/Deadlines/Compliance/Documents/DSCs/Licenses/Notices | client_id FK | Scoped to contact's linked clients via portalHandler |
 
 ---
 
