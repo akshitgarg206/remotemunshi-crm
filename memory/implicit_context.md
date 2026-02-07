@@ -1,6 +1,6 @@
 # Implicit Context
 
-> **RESUME BRIEF:** Production deployed at remotemunshi-crm.vercel.app. All core features complete + client onboarding templates (migration 00024). Onboarding templates auto-create tasks on client creation/lead conversion. Migration needs to be applied to Supabase. No test user created yet. IMPORTANT: always push to both `main` AND `master` (`git push origin main && git push origin main:master`) since Vercel production tracks `master`.
+> **RESUME BRIEF:** Production deployed at remotemunshi-crm.vercel.app. Client onboarding feature code complete & pushed (all 12 steps). **IMMEDIATE NEXT:** Apply migration 00024 to Supabase (Supabase MCP just added — restart needed to load tools). Migration SQL: CREATE TYPE template_trigger_type, ALTER recurring_tasks add trigger_type + drop frequency NOT NULL + partial index. No test user created yet. IMPORTANT: always push to both `main` AND `master` (`git push origin main && git push origin main:master`).
 
 **Last Updated:** 2026-02-07
 

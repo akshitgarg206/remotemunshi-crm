@@ -4,7 +4,7 @@
 >
 > **STATUS:** DEPLOYED_AND_OPTIMIZED
 >
-> **NEXT STEP:** Client onboarding feature implemented (12 steps). Next: apply migration to Supabase, create test user to verify end-to-end.
+> **NEXT STEP:** Client onboarding feature code complete & pushed. Next: apply migration 00024 to Supabase (via MCP or SQL editor), then test end-to-end.
 
 **Last Updated:** 2026-02-07
 
