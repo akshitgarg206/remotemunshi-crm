@@ -31,17 +31,23 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  if (
-    !user &&
-    !request.nextUrl.pathname.startsWith('/login') &&
-    !request.nextUrl.pathname.startsWith('/forgot-password') &&
-    !request.nextUrl.pathname.startsWith('/reset-password') &&
-    !request.nextUrl.pathname.startsWith('/verify') &&
-    !request.nextUrl.pathname.startsWith('/api/v1') &&
-    !request.nextUrl.pathname.startsWith('/auth')
-  ) {
+  const pathname = request.nextUrl.pathname
+
+  // Public routes that don't require auth
+  const isPublicRoute =
+    pathname.startsWith('/login') ||
+    pathname.startsWith('/forgot-password') ||
+    pathname.startsWith('/reset-password') ||
+    pathname.startsWith('/verify') ||
+    pathname.startsWith('/api/v1') ||
+    pathname.startsWith('/auth') ||
+    pathname === '/portal/login' ||
+    pathname === '/portal/auth/callback'
+
+  if (!user && !isPublicRoute) {
     const url = request.nextUrl.clone()
-    url.pathname = '/login'
+    // Portal routes redirect to portal login, everything else to employee login
+    url.pathname = pathname.startsWith('/portal') ? '/portal/login' : '/login'
     return NextResponse.redirect(url)
   }
 

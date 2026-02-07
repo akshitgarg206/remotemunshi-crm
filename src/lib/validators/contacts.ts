@@ -9,6 +9,7 @@ export const createContactSchema = z.object({
   department: z.string().optional(),
   notes: z.string().optional(),
   is_primary: z.boolean().default(false),
+  portal_enabled: z.boolean().optional(),
   client_ids: z.array(z.object({
     client_id: z.string().uuid(),
     role: z.string().optional(),
