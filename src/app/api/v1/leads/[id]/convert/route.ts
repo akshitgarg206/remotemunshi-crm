@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { apiHandler } from '@/lib/api/handler'
+import { generateOnboardingTasks } from '@/lib/tasks/generate-onboarding-tasks'
 
 export const POST = apiHandler(async (req, { params, supabase, employeeId }) => {
   const body = await req.json()
@@ -86,6 +87,19 @@ export const POST = apiHandler(async (req, { params, supabase, employeeId }) => 
         service_id: ls.service_id,
       }))
     )
+  }
+
+  // Auto-create onboarding tasks for the converted client (non-blocking)
+  const convertedServiceIds = (leadServices || []).map((ls: { service_id: string }) => ls.service_id)
+  try {
+    await generateOnboardingTasks({
+      clientId: client.id,
+      serviceIds: convertedServiceIds,
+      employeeId: employeeId!,
+      supabase,
+    })
+  } catch {
+    // Silently continue — onboarding task failure shouldn't block lead conversion
   }
 
   return NextResponse.json({ success: true, data: { lead_id: params.id, client } }, { status: 201 })

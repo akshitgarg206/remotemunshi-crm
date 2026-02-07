@@ -4,7 +4,7 @@
 >
 > **STATUS:** DEPLOYED_AND_OPTIMIZED
 >
-> **NEXT STEP:** RBAC + CSV import fixes deployed. All 64 API routes have permission checks. Sidebar filters by role. CSV import has client_id lookup, enum validation, per-row insert, team auth user creation. Next: create test user to verify end-to-end.
+> **NEXT STEP:** Client onboarding feature implemented (12 steps). Next: apply migration to Supabase, create test user to verify end-to-end.
 
 **Last Updated:** 2026-02-07
 
@@ -68,6 +68,7 @@
 - Contacts separated from clients: migration 00021, contacts table, client_contacts N:M junction, CRUD + link/unlink API routes, hooks, Contacts tab on client detail
 - Per-client template overrides: client_template_overrides table, upsert/delete API routes, hooks, Template Notes tab on client detail
 - Both generate routes (deadline + template) merge per-client overrides (additional_steps + notes) into generated tasks
+- Client Onboarding Templates: migration 00024 (trigger_type enum, frequency nullable), validator with superRefine, generateOnboardingTasks utility, API filter/guards, client POST + lead conversion hooks, UI tabs (recurring/onboarding), conditional add/detail pages
 - OmniDesk: Migration 00022, 6 enums, 5 validators, 11 API routes, 7 hooks, 15 UI components, 4 pages, sidebar nav, Zustand store, Supabase Realtime subscriptions, Claude AI reply generation
 - Design System Overhaul: Branded blue primary color (oklch), next-themes ThemeProvider with light/dark/system, theme toggle in topbar, all layout components use design tokens (sidebar, topbar, mobile-nav), all 9+ support module components tokenized, all status badges use dark-mode-safe colors, KPI cards use bg-primary, settings/reports use primary/10 instead of hardcoded blue-50, kanban cards use bg-card tokens, all bg-white/bg-slate replaced
 - Dead UI Button Fixes: Removed 3 empty handlers (onAdd×2 on passwords/documents, onExport on clients), created ComingSoon reusable component, created 4 topbar/mobile-nav placeholder pages (sprint-planner, chat, calendar, actions-center), created 14 report sub-route placeholder pages — all previously-404 links now render gracefully
@@ -105,6 +106,9 @@
 | 2026-02-07 | Performance: static login + Mumbai region | Removed force-dynamic from auth layout (login now CDN-cached). Added vercel.json with regions: ["bom1"] |
 | 2026-02-07 | RBAC enforcement | apiHandler requirePermission, usePermissions hook, sidebar filtering, all 64 routes wired |
 | 2026-02-07 | CSV import fixes | client_id lookup (DSC/License/Compliance/Notice), enum validation, per-row insert, team auth user creation |
+| 2026-02-07 | Forgot/reset password flow | /forgot-password page, /reset-password page, "Forgot password?" link on login |
+| 2026-02-07 | Account transfer + auth lifecycle | Team PUT handles email change (syncs auth), password reset trigger; Team DELETE bans auth user |
+| 2026-02-07 | Client onboarding templates | Migration 00024, trigger_type enum, validator with superRefine, generateOnboardingTasks utility, API guards/filters, client+lead hooks, UI toggle/tabs/conditional display |
 
 ### Upcoming
 | Item | Priority | Depends On |

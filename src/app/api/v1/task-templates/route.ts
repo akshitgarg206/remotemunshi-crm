@@ -6,7 +6,7 @@ import { createTaskTemplateSchema } from '@/lib/validators/task-templates'
 
 export const GET = apiHandler(async (req, { supabase }) => {
   const { page, pageSize, offset, sortBy, sortOrder, search } = parsePagination(req)
-  const filters = parseFilters(req, ['service_id', 'frequency', 'is_active'])
+  const filters = parseFilters(req, ['service_id', 'frequency', 'is_active', 'trigger_type'])
 
   let query = supabase
     .from('recurring_tasks')
@@ -27,6 +27,7 @@ export const GET = apiHandler(async (req, { supabase }) => {
   if (filters.service_id) query = query.eq('service_id', filters.service_id)
   if (filters.frequency) query = query.eq('frequency', filters.frequency)
   if (filters.is_active !== undefined) query = query.eq('is_active', filters.is_active === 'true')
+  if (filters.trigger_type) query = query.eq('trigger_type', filters.trigger_type)
 
   query = query.order(sortBy, { ascending: sortOrder === 'asc' })
   query = query.range(offset, offset + pageSize - 1)

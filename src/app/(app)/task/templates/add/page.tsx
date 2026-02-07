@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { toast } from 'sonner'
-import { Plus, X } from 'lucide-react'
+import { Plus, X, Info } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { createTaskTemplateSchema, type CreateTaskTemplateInput } from '@/lib/validators/task-templates'
 import { useCreateTaskTemplate } from '@/hooks/queries/use-task-templates'
@@ -56,6 +56,7 @@ function AddTemplateForm() {
     resolver: zodResolver(createTaskTemplateSchema),
     defaultValues: {
       priority: 'medium',
+      trigger_type: 'recurring',
       frequency: 'monthly',
       is_active: true,
       checklist_template: [],
@@ -63,6 +64,7 @@ function AddTemplateForm() {
   })
 
   const frequency = watch('frequency')
+  const triggerType = watch('trigger_type')
 
   const onSubmit = async (data: CreateTaskTemplateInput) => {
     const checklist = steps
@@ -70,14 +72,24 @@ function AddTemplateForm() {
       .filter(Boolean)
       .map((title, i) => ({ title, sort_order: i }))
 
+    const payload: Record<string, unknown> = {
+      ...data,
+      checklist_template: checklist,
+      assignee_ids: selectedAssignees.length ? selectedAssignees : undefined,
+      reviewer_1_id: (reviewer1 && reviewer1 !== 'none') ? reviewer1 : undefined,
+      reviewer_2_id: (reviewer2 && reviewer2 !== 'none') ? reviewer2 : undefined,
+    }
+
+    // Clear frequency for onboarding templates
+    if (data.trigger_type === 'onboarding') {
+      delete payload.frequency
+      delete payload.day_of_month
+      delete payload.day_of_week
+      delete payload.month_of_year
+    }
+
     try {
-      await createTemplate.mutateAsync({
-        ...data,
-        checklist_template: checklist,
-        assignee_ids: selectedAssignees.length ? selectedAssignees : undefined,
-        reviewer_1_id: (reviewer1 && reviewer1 !== 'none') ? reviewer1 : undefined,
-        reviewer_2_id: (reviewer2 && reviewer2 !== 'none') ? reviewer2 : undefined,
-      })
+      await createTemplate.mutateAsync(payload)
       toast.success('Template created')
       router.push('/task/templates')
     } catch (err) {
@@ -96,6 +108,41 @@ function AddTemplateForm() {
       <h1 className="text-2xl font-bold tracking-tight">Create Task Template</h1>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        {/* Template Type */}
+        <Card>
+          <CardHeader><CardTitle>Template Type</CardTitle></CardHeader>
+          <CardContent>
+            <div className="flex gap-4">
+              <label className={`flex items-center gap-3 cursor-pointer rounded-lg border p-4 flex-1 ${triggerType === 'recurring' ? 'border-primary bg-primary/5' : ''}`}>
+                <input
+                  type="radio"
+                  value="recurring"
+                  checked={triggerType === 'recurring'}
+                  onChange={() => { setValue('trigger_type', 'recurring'); setValue('frequency', 'monthly') }}
+                  className="accent-primary"
+                />
+                <div>
+                  <p className="font-medium">Recurring</p>
+                  <p className="text-sm text-muted-foreground">Tasks created on a schedule (daily, monthly, etc.)</p>
+                </div>
+              </label>
+              <label className={`flex items-center gap-3 cursor-pointer rounded-lg border p-4 flex-1 ${triggerType === 'onboarding' ? 'border-primary bg-primary/5' : ''}`}>
+                <input
+                  type="radio"
+                  value="onboarding"
+                  checked={triggerType === 'onboarding'}
+                  onChange={() => { setValue('trigger_type', 'onboarding'); setValue('frequency', undefined) }}
+                  className="accent-primary"
+                />
+                <div>
+                  <p className="font-medium">Onboarding</p>
+                  <p className="text-sm text-muted-foreground">Tasks auto-created when a new client is added</p>
+                </div>
+              </label>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Basic Info */}
         <Card>
           <CardHeader><CardTitle>Template Details</CardTitle></CardHeader>
@@ -106,7 +153,7 @@ function AddTemplateForm() {
               {errors.task_name && <p className="text-sm text-red-500">{errors.task_name.message}</p>}
             </div>
             <div className="space-y-2">
-              <Label>Service</Label>
+              <Label>Service {triggerType === 'onboarding' ? '(optional — leave blank for all clients)' : ''}</Label>
               <Select onValueChange={(v) => setValue('service_id', v)}>
                 <SelectTrigger><SelectValue placeholder="Select service" /></SelectTrigger>
                 <SelectContent>
@@ -138,42 +185,61 @@ function AddTemplateForm() {
           </CardContent>
         </Card>
 
-        {/* Schedule */}
-        <Card>
-          <CardHeader><CardTitle>Schedule</CardTitle></CardHeader>
-          <CardContent className="grid gap-4 md:grid-cols-3">
-            <div className="space-y-2">
-              <Label>Frequency *</Label>
-              <Select defaultValue="monthly" onValueChange={(v) => setValue('frequency', v as CreateTaskTemplateInput['frequency'])}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {RECURRENCE_FREQUENCY.map((f) => (
-                    <SelectItem key={f} value={f}>{frequencyLabels[f] || f}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {errors.frequency && <p className="text-sm text-red-500">{errors.frequency.message}</p>}
-            </div>
-            {(frequency === 'monthly' || frequency === 'quarterly' || frequency === 'half_yearly' || frequency === 'yearly') && (
+        {/* Schedule — only for recurring templates */}
+        {triggerType === 'recurring' && (
+          <Card>
+            <CardHeader><CardTitle>Schedule</CardTitle></CardHeader>
+            <CardContent className="grid gap-4 md:grid-cols-3">
               <div className="space-y-2">
-                <Label>Day of Month</Label>
-                <Input type="number" min={1} max={31} {...register('day_of_month', { valueAsNumber: true })} placeholder="1-31" />
+                <Label>Frequency *</Label>
+                <Select defaultValue="monthly" onValueChange={(v) => setValue('frequency', v as CreateTaskTemplateInput['frequency'])}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {RECURRENCE_FREQUENCY.map((f) => (
+                      <SelectItem key={f} value={f}>{frequencyLabels[f] || f}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {errors.frequency && <p className="text-sm text-red-500">{errors.frequency.message}</p>}
               </div>
-            )}
-            {frequency === 'weekly' && (
-              <div className="space-y-2">
-                <Label>Day of Week (0=Sun, 6=Sat)</Label>
-                <Input type="number" min={0} max={6} {...register('day_of_week', { valueAsNumber: true })} />
+              {(frequency === 'monthly' || frequency === 'quarterly' || frequency === 'half_yearly' || frequency === 'yearly') && (
+                <div className="space-y-2">
+                  <Label>Day of Month</Label>
+                  <Input type="number" min={1} max={31} {...register('day_of_month', { valueAsNumber: true })} placeholder="1-31" />
+                </div>
+              )}
+              {frequency === 'weekly' && (
+                <div className="space-y-2">
+                  <Label>Day of Week (0=Sun, 6=Sat)</Label>
+                  <Input type="number" min={0} max={6} {...register('day_of_week', { valueAsNumber: true })} />
+                </div>
+              )}
+              {frequency === 'yearly' && (
+                <div className="space-y-2">
+                  <Label>Month of Year (1-12)</Label>
+                  <Input type="number" min={1} max={12} {...register('month_of_year', { valueAsNumber: true })} />
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Onboarding info note */}
+        {triggerType === 'onboarding' && (
+          <Card className="border-primary/30 bg-primary/5">
+            <CardContent className="flex items-start gap-3 pt-6">
+              <Info className="size-5 text-primary mt-0.5 shrink-0" />
+              <div>
+                <p className="font-medium">Onboarding Template</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Tasks from this template will be automatically created whenever a new client is added or a lead is converted to a client.
+                  {' '}If a service is selected, tasks will only be created for clients subscribed to that service.
+                  {' '}If no service is selected, tasks will be created for all new clients.
+                </p>
               </div>
-            )}
-            {frequency === 'yearly' && (
-              <div className="space-y-2">
-                <Label>Month of Year (1-12)</Label>
-                <Input type="number" min={1} max={12} {...register('month_of_year', { valueAsNumber: true })} />
-              </div>
-            )}
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Steps */}
         <Card>

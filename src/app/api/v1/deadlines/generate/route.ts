@@ -91,6 +91,7 @@ export const POST = apiHandler(async (req, { supabase, employeeId }) => {
     `)
     .eq('service_id', service_id)
     .eq('is_active', true)
+    .eq('trigger_type', 'recurring')
     .is('deleted_at', null)
 
   if (templates?.length && created?.length) {

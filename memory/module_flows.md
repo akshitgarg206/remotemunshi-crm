@@ -32,6 +32,7 @@
 | 00020 | Task Template Enhancements | — | ALTER recurring_tasks: reviewer_1_id, reviewer_2_id, min_edit_level + indexes |
 | 00021 | Contacts & Template Overrides | 3 | contacts, client_contacts (N:M junction), client_template_overrides (per-client template customization) |
 | 00022 | OmniDesk Support | 5 | support_conversations, support_messages, support_tickets, support_escalations, support_quick_replies + 6 enums + v_support_kpis view + ticket_number auto-gen trigger + Supabase Realtime |
+| 00024 | Onboarding Templates | — | ALTER recurring_tasks: trigger_type (recurring/onboarding), frequency nullable + partial index for onboarding lookup |
 
 ### 1.2 Core FK Relationships
 
@@ -224,6 +225,8 @@ All 9 list pages follow: KPI cards → Tabs → DataGrid (search, sort, paginati
 | CSV Import → 9 modules | API routes | Bulk data loading |
 | Contacts ↔ Clients | client_contacts junction | N:M contact sharing across clients |
 | Templates → Client Overrides | client_template_overrides | Per-client additional steps + notes merged on task generation |
+| Onboarding Templates → Clients | generateOnboardingTasks() | Auto-create tasks on client POST (universal + service-specific templates) |
+| Onboarding Templates → Leads | generateOnboardingTasks() | Auto-create tasks on lead-to-client conversion |
 | Support Conversations → Clients/Contacts | client_id + contact_id FKs | Customer identity on conversations |
 | Support Conversations → Employees | assigned_employee_id FK | Agent assignment |
 | Support Messages → Conversations | conversation_id FK | Message thread |
@@ -241,6 +244,9 @@ All 9 list pages follow: KPI cards → Tabs → DataGrid (search, sort, paginati
 
 ### Task Template Auto-Generation
 Create task template (recurring_tasks) → Link to service → When deadlines generated for that service → Auto-create tasks per client with template's checklist, assignees, reviewers → Workers can add additional steps to generated tasks
+
+### Client Onboarding Auto-Tasks
+Create onboarding template (trigger_type='onboarding') → Optional: link to service (service-specific) or leave NULL (universal) → When new client is created (POST) or lead converted → generateOnboardingTasks() fires → Creates tasks with "{template.task_name} - Onboarding" + checklist + assignees + reviewers → Per-client overrides merged
 
 ### Lead-to-Client Conversion
 Lead (with assignees + services) → POST /leads/{id}/convert → Client created with same assignees/services → Lead marked converted

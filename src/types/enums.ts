@@ -86,3 +86,6 @@ export type EscalationStatus = typeof ESCALATION_STATUS[number]
 
 export const OMNIDESK_MESSAGE_TYPE = ['text', 'image', 'file', 'audio', 'video', 'system'] as const
 export type OmnideskMessageType = typeof OMNIDESK_MESSAGE_TYPE[number]
+
+export const TEMPLATE_TRIGGER_TYPE = ['recurring', 'onboarding'] as const
+export type TemplateTriggerType = typeof TEMPLATE_TRIGGER_TYPE[number]

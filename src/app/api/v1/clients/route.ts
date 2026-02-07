@@ -3,6 +3,7 @@ import { apiHandler } from '@/lib/api/handler'
 import { parsePagination, paginationMeta } from '@/lib/api/pagination'
 import { parseFilters } from '@/lib/api/filters'
 import { createClientSchema } from '@/lib/validators/clients'
+import { generateOnboardingTasks } from '@/lib/tasks/generate-onboarding-tasks'
 
 // GET /api/v1/clients — List clients (paginated, filtered, sorted)
 export const GET = apiHandler(async (req, { supabase }) => {
@@ -76,6 +77,18 @@ export const POST = apiHandler(async (req, { supabase, employeeId }) => {
     await supabase.from('client_group_members').insert(
       group_ids.map((gid) => ({ client_id: client.id, group_id: gid }))
     )
+  }
+
+  // Auto-create onboarding tasks (non-blocking — don't fail client creation)
+  try {
+    await generateOnboardingTasks({
+      clientId: client.id,
+      serviceIds: service_ids || [],
+      employeeId: employeeId!,
+      supabase,
+    })
+  } catch {
+    // Silently continue — onboarding task failure shouldn't block client creation
   }
 
   return NextResponse.json({ success: true, data: client }, { status: 201 })

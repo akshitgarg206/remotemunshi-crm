@@ -39,6 +39,7 @@ export default function TemplateDetailPage() {
   const [genYear, setGenYear] = useState(new Date().getFullYear())
 
   const template = res?.data as Record<string, unknown> | undefined
+  const isOnboarding = template?.trigger_type === 'onboarding'
 
   async function handleToggleActive() {
     try {
@@ -110,7 +111,12 @@ export default function TemplateDetailPage() {
           <div>
             <h1 className="text-2xl font-bold tracking-tight">{template.task_name as string}</h1>
             <div className="mt-2 flex items-center gap-2">
-              <Badge variant="secondary">{frequencyLabels[template.frequency as string] || template.frequency as string}</Badge>
+              <Badge variant={isOnboarding ? 'default' : 'secondary'}>
+                {isOnboarding ? 'Onboarding' : 'Recurring'}
+              </Badge>
+              {!isOnboarding && template.frequency ? (
+                <Badge variant="secondary">{frequencyLabels[template.frequency as string] || (template.frequency as string)}</Badge>
+              ) : null}
               <Badge variant="secondary" className={priorityColors[template.priority as string] || ''}>
                 {template.priority as string}
               </Badge>
@@ -121,9 +127,11 @@ export default function TemplateDetailPage() {
           </div>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => setGenOpen(true)}>
-            <Play className="mr-1 size-4" /> Generate Tasks
-          </Button>
+          {!isOnboarding && (
+            <Button variant="outline" size="sm" onClick={() => setGenOpen(true)}>
+              <Play className="mr-1 size-4" /> Generate Tasks
+            </Button>
+          )}
           <Button variant="outline" size="sm" onClick={handleToggleActive}>
             <Power className="mr-1 size-4" /> {template.is_active ? 'Deactivate' : 'Activate'}
           </Button>
@@ -140,32 +148,40 @@ export default function TemplateDetailPage() {
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <div>
               <p className="text-sm text-muted-foreground">Service</p>
-              <p className="font-medium">{service?.name || '-'}</p>
+              <p className="font-medium">{service?.name || (isOnboarding ? 'All new clients (universal)' : '-')}</p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Client</p>
               <p className="font-medium">{client?.business_name || 'All subscribed clients'}</p>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Schedule</p>
+              <p className="text-sm text-muted-foreground">{isOnboarding ? 'Trigger' : 'Schedule'}</p>
               <p className="font-medium">
-                {template.day_of_month ? `Day ${template.day_of_month}` : ''}
-                {template.month_of_year ? ` of Month ${template.month_of_year}` : ''}
-                {!template.day_of_month && !template.month_of_year ? '-' : ''}
+                {isOnboarding ? (
+                  'On client creation'
+                ) : (
+                  <>
+                    {template.day_of_month ? `Day ${template.day_of_month}` : ''}
+                    {template.month_of_year ? ` of Month ${template.month_of_year}` : ''}
+                    {!template.day_of_month && !template.month_of_year ? '-' : ''}
+                  </>
+                )}
               </p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Estimated Hours</p>
               <p className="font-medium">{(template.estimated_hours as number) ?? '-'}</p>
             </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Last Generated</p>
-              <p className="font-medium">
-                {template.last_generated_at
-                  ? format(new Date(template.last_generated_at as string), 'dd MMM yyyy')
-                  : 'Never'}
-              </p>
-            </div>
+            {!isOnboarding && (
+              <div>
+                <p className="text-sm text-muted-foreground">Last Generated</p>
+                <p className="font-medium">
+                  {template.last_generated_at
+                    ? format(new Date(template.last_generated_at as string), 'dd MMM yyyy')
+                    : 'Never'}
+                </p>
+              </div>
+            )}
             <div>
               <p className="text-sm text-muted-foreground">Min Edit Level</p>
               <p className="font-medium">{String(template.min_edit_level)}</p>
@@ -255,47 +271,49 @@ export default function TemplateDetailPage() {
         </Button>
       </div>
 
-      {/* Generate Dialog */}
-      <Dialog open={genOpen} onOpenChange={setGenOpen}>
-        <DialogContent className="sm:max-w-[400px]">
-          <DialogHeader>
-            <DialogTitle>Generate Tasks from Template</DialogTitle>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Month</Label>
-                <Input
-                  type="number"
-                  min={1}
-                  max={12}
-                  value={genMonth}
-                  onChange={(e) => setGenMonth(Number(e.target.value))}
-                />
+      {/* Generate Dialog — only for recurring templates */}
+      {!isOnboarding && (
+        <Dialog open={genOpen} onOpenChange={setGenOpen}>
+          <DialogContent className="sm:max-w-[400px]">
+            <DialogHeader>
+              <DialogTitle>Generate Tasks from Template</DialogTitle>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Month</Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={12}
+                    value={genMonth}
+                    onChange={(e) => setGenMonth(Number(e.target.value))}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Year</Label>
+                  <Input
+                    type="number"
+                    min={2020}
+                    max={2100}
+                    value={genYear}
+                    onChange={(e) => setGenYear(Number(e.target.value))}
+                  />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label>Year</Label>
-                <Input
-                  type="number"
-                  min={2020}
-                  max={2100}
-                  value={genYear}
-                  onChange={(e) => setGenYear(Number(e.target.value))}
-                />
-              </div>
+              <p className="text-sm text-muted-foreground">
+                This will create tasks for all subscribed clients using this template&apos;s steps, assignees, and reviewers.
+              </p>
             </div>
-            <p className="text-sm text-muted-foreground">
-              This will create tasks for all subscribed clients using this template&apos;s steps, assignees, and reviewers.
-            </p>
-          </div>
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setGenOpen(false)}>Cancel</Button>
-            <Button onClick={handleGenerate} disabled={generateFromTemplate.isPending}>
-              {generateFromTemplate.isPending ? 'Generating...' : 'Generate'}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setGenOpen(false)}>Cancel</Button>
+              <Button onClick={handleGenerate} disabled={generateFromTemplate.isPending}>
+                {generateFromTemplate.isPending ? 'Generating...' : 'Generate'}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   )
 }

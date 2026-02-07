@@ -31,6 +31,13 @@ export const POST = apiHandler(async (req, { supabase, employeeId, params }) => 
     )
   }
 
+  if (template.trigger_type === 'onboarding') {
+    return NextResponse.json(
+      { success: false, error: { code: 'VALIDATION_ERROR', message: 'Onboarding templates auto-trigger on client creation and cannot be manually generated' } },
+      { status: 400 }
+    )
+  }
+
   // Determine target clients
   let clientIds: string[] = []
 

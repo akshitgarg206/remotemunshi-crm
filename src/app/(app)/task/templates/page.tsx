@@ -5,7 +5,9 @@ import { useRouter } from 'next/navigation'
 import { ColumnDef } from '@tanstack/react-table'
 import { DataGrid } from '@/components/data-grid/data-grid'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { useTaskTemplates } from '@/hooks/queries/use-task-templates'
+import type { TemplateTriggerType } from '@/types/enums'
 
 const frequencyLabels: Record<string, string> = {
   daily: 'Daily',
@@ -27,14 +29,15 @@ const columns: ColumnDef<Record<string, unknown>>[] = [
     header: 'Service',
     cell: ({ row }) => {
       const s = row.getValue('services') as Record<string, string> | null
-      return s?.name || '-'
+      return s?.name || <span className="text-muted-foreground">All clients</span>
     },
   },
   {
     accessorKey: 'frequency',
     header: 'Frequency',
     cell: ({ row }) => {
-      const f = row.getValue('frequency') as string
+      const f = row.getValue('frequency') as string | null
+      if (!f) return <Badge variant="outline">On Client Create</Badge>
       return <Badge variant="secondary">{frequencyLabels[f] || f}</Badge>
     },
   },
@@ -78,14 +81,32 @@ export default function TaskTemplatesPage() {
   const router = useRouter()
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
+  const [triggerType, setTriggerType] = useState<TemplateTriggerType>('recurring')
 
-  const { data, isLoading } = useTaskTemplates({ page, pageSize: 20, search })
+  const { data, isLoading } = useTaskTemplates({ page, pageSize: 20, search, trigger_type: triggerType })
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Task Templates</h1>
-        <p className="text-muted-foreground">Manage recurring task templates that auto-create tasks</p>
+        <p className="text-muted-foreground">Manage recurring and onboarding task templates</p>
+      </div>
+
+      <div className="flex gap-2">
+        <Button
+          variant={triggerType === 'recurring' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => { setTriggerType('recurring'); setPage(1) }}
+        >
+          Recurring
+        </Button>
+        <Button
+          variant={triggerType === 'onboarding' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => { setTriggerType('onboarding'); setPage(1) }}
+        >
+          Onboarding
+        </Button>
       </div>
 
       <DataGrid

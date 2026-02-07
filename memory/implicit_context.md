@@ -1,6 +1,6 @@
 # Implicit Context
 
-> **RESUME BRIEF:** Production deployed at remotemunshi-crm.vercel.app (login page works, 200 OK). Performance optimized: login page static (CDN), function region set to Mumbai (bom1). No test user exists yet — next step is create Supabase auth user + employees row with Super Admin role to test login flow. IMPORTANT: always push to both `main` AND `master` (`git push origin main && git push origin main:master`) since Vercel production tracks `master`.
+> **RESUME BRIEF:** Production deployed at remotemunshi-crm.vercel.app. All core features complete + client onboarding templates (migration 00024). Onboarding templates auto-create tasks on client creation/lead conversion. Migration needs to be applied to Supabase. No test user created yet. IMPORTANT: always push to both `main` AND `master` (`git push origin main && git push origin main:master`) since Vercel production tracks `master`.
 
 **Last Updated:** 2026-02-07
 
@@ -11,7 +11,7 @@
 ### Active Work
 - **Task:** None active — all done
 - **Approach:** —
-- **Files touched:** `src/app/(auth)/layout.tsx`, `vercel.json`
+- **Files touched:** forgot-password page, reset-password page, login page, team [id] route, middleware
 
 ### Decisions Made (with reasoning)
 | Decision | Why | Alternatives Rejected |
