@@ -20,7 +20,7 @@ export const GET = apiHandler(async (req, { supabase }) => {
   if (error) throw error
 
   return NextResponse.json({ success: true, data, meta: paginationMeta(count || 0, page, pageSize) })
-})
+}, { requirePermission: { module: 'compliance', action: 'read' } })
 
 export const POST = apiHandler(async (req, { supabase, employeeId }) => {
   const body = await req.json()
@@ -28,4 +28,4 @@ export const POST = apiHandler(async (req, { supabase, employeeId }) => {
   const { data, error } = await supabase.from('compliance_entries').insert({ ...validated, created_by: employeeId }).select().single()
   if (error) throw error
   return NextResponse.json({ success: true, data }, { status: 201 })
-})
+}, { requirePermission: { module: 'compliance', action: 'create' } })

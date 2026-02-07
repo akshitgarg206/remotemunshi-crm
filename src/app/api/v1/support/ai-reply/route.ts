@@ -87,4 +87,4 @@ export const POST = apiHandler(async (req, { supabase }) => {
     success: true,
     data: { reply: generatedReply },
   })
-})
+}, { requirePermission: { module: 'communications', action: 'read' } })

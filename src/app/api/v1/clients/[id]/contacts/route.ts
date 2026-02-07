@@ -17,7 +17,7 @@ export const GET = apiHandler(async (req, { supabase, params }) => {
   if (error) throw error
 
   return NextResponse.json({ success: true, data })
-})
+}, { requirePermission: { module: 'clients', action: 'read' } })
 
 // POST /api/v1/clients/:id/contacts — Link existing contact to client
 export const POST = apiHandler(async (req, { supabase, params }) => {
@@ -43,7 +43,7 @@ export const POST = apiHandler(async (req, { supabase, params }) => {
   if (error) throw error
 
   return NextResponse.json({ success: true, data }, { status: 201 })
-})
+}, { requirePermission: { module: 'clients', action: 'update' } })
 
 // DELETE /api/v1/clients/:id/contacts — Unlink contact from client
 export const DELETE = apiHandler(async (req, { supabase, params }) => {

@@ -29,7 +29,7 @@ export const GET = apiHandler(async (req, { params, supabase }) => {
   }
 
   return NextResponse.json({ success: true, data })
-})
+}, { requirePermission: { module: 'communications', action: 'read' } })
 
 export const PUT = apiHandler(async (req, { params, supabase }) => {
   const body = await req.json()
@@ -53,4 +53,4 @@ export const PUT = apiHandler(async (req, { params, supabase }) => {
 
   if (error) throw error
   return NextResponse.json({ success: true, data })
-})
+}, { requirePermission: { module: 'communications', action: 'update' } })

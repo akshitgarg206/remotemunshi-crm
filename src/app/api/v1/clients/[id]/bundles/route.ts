@@ -12,7 +12,7 @@ export const GET = apiHandler(async (req, { params, supabase }) => {
   if (error) throw error
 
   return NextResponse.json({ success: true, data })
-})
+}, { requirePermission: { module: 'bundles', action: 'read' } })
 
 // POST /api/v1/clients/:id/bundles — assign bundle to client
 export const POST = apiHandler(async (req, { params, supabase }) => {
@@ -58,4 +58,4 @@ export const POST = apiHandler(async (req, { params, supabase }) => {
   }
 
   return NextResponse.json({ success: true, data: clientBundle }, { status: 201 })
-})
+}, { requirePermission: { module: 'bundles', action: 'create' } })

@@ -25,7 +25,7 @@ export const GET = apiHandler(async (req, { supabase, params }) => {
   }
 
   return NextResponse.json({ success: true, data })
-})
+}, { requirePermission: { module: 'tasks', action: 'read' } })
 
 export const PUT = apiHandler(async (req, { supabase, employeeId, params }) => {
   const body = await req.json()
@@ -82,7 +82,7 @@ export const PUT = apiHandler(async (req, { supabase, employeeId, params }) => {
   }
 
   return NextResponse.json({ success: true, data: template })
-})
+}, { requirePermission: { module: 'tasks', action: 'update' } })
 
 export const DELETE = apiHandler(async (req, { supabase, employeeId, params }) => {
   // Check template and permissions
@@ -123,4 +123,4 @@ export const DELETE = apiHandler(async (req, { supabase, employeeId, params }) =
   if (error) throw error
 
   return NextResponse.json({ success: true, data: { deleted: true } })
-})
+}, { requirePermission: { module: 'tasks', action: 'delete' } })

@@ -23,7 +23,7 @@ export const GET = apiHandler(async (req, { params, supabase }) => {
   }
 
   return NextResponse.json({ success: true, data })
-})
+}, { requirePermission: { module: 'communications', action: 'read' } })
 
 // PUT /api/v1/clients/:id/communications/:commId — Update communication
 export const PUT = apiHandler(async (req, { params, supabase }) => {
@@ -50,7 +50,7 @@ export const PUT = apiHandler(async (req, { params, supabase }) => {
   }
 
   return NextResponse.json({ success: true, data })
-})
+}, { requirePermission: { module: 'communications', action: 'update' } })
 
 // DELETE /api/v1/clients/:id/communications/:commId — Soft delete
 export const DELETE = apiHandler(async (req, { params, supabase }) => {
@@ -63,4 +63,4 @@ export const DELETE = apiHandler(async (req, { params, supabase }) => {
   if (error) throw error
 
   return NextResponse.json({ success: true, data: { id: params.commId, deleted: true } })
-})
+}, { requirePermission: { module: 'communications', action: 'delete' } })

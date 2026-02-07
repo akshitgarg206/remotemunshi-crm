@@ -23,7 +23,7 @@ export const GET = apiHandler(async (req, { params, supabase }) => {
     data,
     meta: paginationMeta(count || 0, page, pageSize),
   })
-})
+}, { requirePermission: { module: 'communications', action: 'read' } })
 
 export const POST = apiHandler(async (req, { params, supabase, employeeId }) => {
   const body = await req.json()
@@ -68,4 +68,4 @@ export const POST = apiHandler(async (req, { params, supabase, employeeId }) => 
   }
 
   return NextResponse.json({ success: true, data: message }, { status: 201 })
-})
+}, { requirePermission: { module: 'communications', action: 'create' } })

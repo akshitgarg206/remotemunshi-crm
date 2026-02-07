@@ -15,7 +15,7 @@ export const GET = apiHandler(async (req, { supabase, params }) => {
   if (error) throw error
 
   return NextResponse.json({ success: true, data })
-})
+}, { requirePermission: { module: 'clients', action: 'read' } })
 
 // POST /api/v1/clients/:id/template-overrides — Create or update override
 export const POST = apiHandler(async (req, { supabase, employeeId, params }) => {
@@ -40,7 +40,7 @@ export const POST = apiHandler(async (req, { supabase, employeeId, params }) => 
   if (error) throw error
 
   return NextResponse.json({ success: true, data }, { status: 201 })
-})
+}, { requirePermission: { module: 'clients', action: 'update' } })
 
 // DELETE /api/v1/clients/:id/template-overrides — Remove override
 export const DELETE = apiHandler(async (req, { supabase, params }) => {
@@ -63,4 +63,4 @@ export const DELETE = apiHandler(async (req, { supabase, params }) => {
   if (error) throw error
 
   return NextResponse.json({ success: true, data: { deleted: true } })
-})
+}, { requirePermission: { module: 'clients', action: 'delete' } })

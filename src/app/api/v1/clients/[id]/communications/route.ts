@@ -31,7 +31,7 @@ export const GET = apiHandler(async (req, { params, supabase }) => {
     data,
     meta: paginationMeta(count || 0, page, pageSize),
   })
-})
+}, { requirePermission: { module: 'communications', action: 'read' } })
 
 // POST /api/v1/clients/:id/communications — Log a new communication entry
 export const POST = apiHandler(async (req, { params, supabase, userId }) => {
@@ -64,4 +64,4 @@ export const POST = apiHandler(async (req, { params, supabase, userId }) => {
   if (error) throw error
 
   return NextResponse.json({ success: true, data }, { status: 201 })
-})
+}, { requirePermission: { module: 'communications', action: 'create' } })

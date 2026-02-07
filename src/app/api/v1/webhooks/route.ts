@@ -30,7 +30,7 @@ export const GET = apiHandler(async (req, { supabase }) => {
 
   if (error) throw error
   return NextResponse.json({ success: true, data, meta: { available_events: WEBHOOK_EVENTS } })
-})
+}, { requirePermission: { module: 'webhooks', action: 'read' } })
 
 export const POST = apiHandler(async (req, { supabase, userId }) => {
   const body = await req.json()
@@ -55,4 +55,4 @@ export const POST = apiHandler(async (req, { supabase, userId }) => {
 
   // Return secret only on creation
   return NextResponse.json({ success: true, data }, { status: 201 })
-})
+}, { requirePermission: { module: 'webhooks', action: 'create' } })

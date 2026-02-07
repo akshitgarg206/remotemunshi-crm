@@ -23,4 +23,4 @@ export const POST = apiHandler(async (req, { params, supabase, employeeId }) => 
   })
 
   return NextResponse.json({ success: true, data })
-})
+}, { requirePermission: { module: 'communications', action: 'update' } })

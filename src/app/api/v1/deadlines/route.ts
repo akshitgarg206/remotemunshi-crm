@@ -45,4 +45,4 @@ export const GET = apiHandler(async (req, { supabase }) => {
     data,
     meta: paginationMeta(count || 0, page, pageSize),
   })
-})
+}, { requirePermission: { module: 'services', action: 'read' } })

@@ -26,4 +26,4 @@ export const POST = apiHandler(async (req, { params, supabase, employeeId }) => 
     .eq('status', 'pending')
 
   return NextResponse.json({ success: true, data: deadline })
-})
+}, { requirePermission: { module: 'services', action: 'update' } })

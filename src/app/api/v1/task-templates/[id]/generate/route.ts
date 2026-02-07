@@ -150,4 +150,4 @@ export const POST = apiHandler(async (req, { supabase, employeeId, params }) => 
     success: true,
     data: { tasks_created: tasksCreated, period: periodLabel },
   }, { status: 201 })
-})
+}, { requirePermission: { module: 'tasks', action: 'create' } })

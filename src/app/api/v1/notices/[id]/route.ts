@@ -9,7 +9,7 @@ export const GET = apiHandler(async (req, { params, supabase }) => {
     throw error
   }
   return NextResponse.json({ success: true, data })
-})
+}, { requirePermission: { module: 'notices', action: 'read' } })
 
 export const PUT = apiHandler(async (req, { params, supabase }) => {
   const body = await req.json()
@@ -17,10 +17,10 @@ export const PUT = apiHandler(async (req, { params, supabase }) => {
   const { data, error } = await supabase.from('notices').update(validated).eq('id', params.id).is('deleted_at', null).select().single()
   if (error) throw error
   return NextResponse.json({ success: true, data })
-})
+}, { requirePermission: { module: 'notices', action: 'update' } })
 
 export const DELETE = apiHandler(async (req, { params, supabase }) => {
   const { error } = await supabase.from('notices').update({ deleted_at: new Date().toISOString() }).eq('id', params.id)
   if (error) throw error
   return NextResponse.json({ success: true, data: { id: params.id, deleted: true } })
-})
+}, { requirePermission: { module: 'notices', action: 'delete' } })

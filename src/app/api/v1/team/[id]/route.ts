@@ -43,7 +43,7 @@ export const GET = apiHandler(async (req, { params, supabase }) => {
   }
 
   return NextResponse.json({ success: true, data })
-})
+}, { requirePermission: { module: 'team', action: 'read' } })
 
 export const PUT = apiHandler(async (req, { params, supabase }) => {
   const body = await req.json()
@@ -59,7 +59,7 @@ export const PUT = apiHandler(async (req, { params, supabase }) => {
 
   if (error) throw error
   return NextResponse.json({ success: true, data })
-})
+}, { requirePermission: { module: 'team', action: 'update' } })
 
 export const DELETE = apiHandler(async (req, { params, supabase }) => {
   const { error } = await supabase
@@ -69,4 +69,4 @@ export const DELETE = apiHandler(async (req, { params, supabase }) => {
 
   if (error) throw error
   return NextResponse.json({ success: true, data: { id: params.id, deleted: true } })
-})
+}, { requirePermission: { module: 'team', action: 'delete' } })

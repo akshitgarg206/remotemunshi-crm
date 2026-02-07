@@ -26,7 +26,7 @@ export const GET = apiHandler(async (req, { supabase }) => {
     data,
     meta: paginationMeta(count || 0, page, pageSize),
   })
-})
+}, { requirePermission: { module: 'bundles', action: 'read' } })
 
 export const POST = apiHandler(async (req, { supabase }) => {
   const body = await req.json()
@@ -63,4 +63,4 @@ export const POST = apiHandler(async (req, { supabase }) => {
   if (error) throw error
 
   return NextResponse.json({ success: true, data }, { status: 201 })
-})
+}, { requirePermission: { module: 'bundles', action: 'create' } })

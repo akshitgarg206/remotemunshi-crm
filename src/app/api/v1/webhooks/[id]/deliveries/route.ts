@@ -14,4 +14,4 @@ export const GET = apiHandler(async (req, { params, supabase }) => {
 
   if (error) throw error
   return NextResponse.json({ success: true, data, meta: paginationMeta(count || 0, page, pageSize) })
-})
+}, { requirePermission: { module: 'webhooks', action: 'read' } })

@@ -21,7 +21,7 @@ export const GET = apiHandler(async (req, { params, supabase }) => {
     throw error
   }
   return NextResponse.json({ success: true, data })
-})
+}, { requirePermission: { module: 'webhooks', action: 'read' } })
 
 export const PUT = apiHandler(async (req, { params, supabase }) => {
   const body = await req.json()
@@ -35,10 +35,10 @@ export const PUT = apiHandler(async (req, { params, supabase }) => {
 
   if (error) throw error
   return NextResponse.json({ success: true, data })
-})
+}, { requirePermission: { module: 'webhooks', action: 'update' } })
 
 export const DELETE = apiHandler(async (req, { params, supabase }) => {
   const { error } = await supabase.from('webhooks').delete().eq('id', params.id)
   if (error) throw error
   return NextResponse.json({ success: true, data: { id: params.id, deleted: true } })
-})
+}, { requirePermission: { module: 'webhooks', action: 'delete' } })
