@@ -3,6 +3,7 @@ import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { Sidebar } from '@/components/layout/sidebar'
 import { Topbar } from '@/components/layout/topbar'
 import { MobileNav } from '@/components/layout/mobile-nav'
+import { AppShellContent } from '@/components/layout/app-shell-content'
 
 // All app pages require auth — skip static prerendering
 export const dynamic = 'force-dynamic'
@@ -22,13 +23,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <Sidebar />
       </div>
 
-      {/* Main content area */}
-      <div className="lg:pl-60 transition-all duration-300">
+      {/* Main content area — responds to sidebar collapse */}
+      <AppShellContent>
         <Topbar />
         <main className="p-4 md:p-6 pb-20 lg:pb-6">
           {children}
         </main>
-      </div>
+      </AppShellContent>
 
       {/* Mobile bottom nav */}
       <MobileNav />
