@@ -2,11 +2,11 @@
 
 > **ACTIVE GOAL:** Build Remote Munshi CRM — full Turia clone with REST API + webhooks (Next.js 16 + Supabase)
 >
-> **STATUS:** BUILDING
+> **STATUS:** UI/UX POLISH COMPLETE
 >
-> **NEXT STEP:** Dummy data inserted (tagged [TEST-PORTAL]). Vercel deploying. Test portal: go to /portal/login, enter akshitgarg206@gmail.com, click magic link, verify dashboard + client detail tabs.
+> **NEXT STEP:** All 5 waves of UI polish implemented and deployed. Ready for next user request.
 
-**Last Updated:** 2026-02-07
+**Last Updated:** 2026-02-09
 
 ---
 
@@ -115,6 +115,12 @@
 | 2026-02-07 | Contact Portal planned | Full plan at .claude/plans/vivid-kindling-reef.md — 4 phases: auth foundation, API routes, UI pages, filing downloads (future) |
 | 2026-02-07 | Contact Portal built (Phases 1-3) | Migration 00025 (auth_user_id, portal_enabled, RLS for 11 tables), portalHandler, middleware update, magic link auth (send + callback + me), 9 read-only API routes, full portal UI (layout, login, dashboard, client detail with 7 tabs) |
 | 2026-02-07 | Applied missing migrations 00020-00023 | task_template_enhancements, contacts_and_template_overrides, omnidesk, split_managing_partner — all now live in Supabase |
+| 2026-02-09 | Compliance Matrix feature | 4-view compliance matrix (/compliance-matrix): By Service, By Period (FY pivot), By Client (services x months grid), By Group. KPI cards, deadline drawer with quick actions, sidebar nav. 2 API routes, 1 hook, 1 page, 7 components. |
+| 2026-02-09 | UI/UX Polish — Wave 1 (Global) | Sidebar grouped into 7 collapsible sections, EmptyState component (3 variants), unified StatusBadge + status-colors system, content-aware DataGrid skeletons, backdrop-blur topbar |
+| 2026-02-09 | UI/UX Polish — Wave 2 (High-Impact) | Login split layout with branding panel, Dashboard with live KPIs + activity feed + deadlines, Client detail with avatar/stat cards, Task detail with StatusBadge + overdue highlighting |
+| 2026-02-09 | UI/UX Polish — Wave 3 (List Pages) | Client list with avatar initials + code subtitle, Kanban cards with priority bars + checklist progress, Data Tracker with overdue day counts, Compliance Matrix heat-map cell colors |
+| 2026-02-09 | UI/UX Polish — Wave 4 (Forms & Support) | Task add form 2-column layout (description+steps left, metadata right), Client add multi-step wizard (4 steps), Settings page left sidebar navigation, Portal dashboard branded card grid |
+| 2026-02-09 | UI/UX Polish — Wave 5 (Reports & Misc) | NotificationPanel slide-out (grouped by date, All/Unread tabs, mark-all-read, unread badge), Reports hub with descriptions + chevron arrows |
 
 ### Upcoming
 | Item | Priority | Depends On |

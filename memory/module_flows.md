@@ -138,6 +138,7 @@ lead_services → client_services (copied on conversion)
 | Support Escalations | 2 | List/create + detail/update |
 | Support Quick Replies | 2 | CRUD |
 | Support AI Reply | 1 | Generate reply via Claude API |
+| Compliance Matrix | 2 | Matrix view (4 modes: service/period/client/group) + KPI aggregates |
 
 ### 2.2 apiHandler Context
 
@@ -177,6 +178,7 @@ All routes use `apiHandler` wrapper injecting:
 ├── /notice-management     — Notice list → /{id}
 ├── /compliance-tracker    — Compliance list
 ├── /data-tracker          — Service deadline tracker → /data-tracker/{id}
+├── /compliance-matrix     — Cross-client compliance matrix (4 views: service/period/client/group)
 ├── /bundles               — Bundle list → /bundles/add, /bundles/{id}
 ├── /support               — OmniDesk Agent Console (3-column: conversations | chat | context)
 │   ├── /support/conversation/{id} — Conversation detail with escalation widgets
