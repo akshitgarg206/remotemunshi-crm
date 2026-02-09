@@ -21,13 +21,15 @@ import { useDeadlines, useDeadlineKpi, useGenerateDeadlines } from '@/hooks/quer
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+import { StatusBadge } from '@/components/status-badge'
+
 const statusColors: Record<string, string> = {
-  data_pending: 'bg-yellow-100 text-yellow-700',
-  data_received: 'bg-green-100 text-green-700',
-  in_progress: 'bg-blue-100 text-blue-700',
-  filed: 'bg-green-100 text-green-700',
-  overdue: 'bg-red-100 text-red-700',
-  upcoming: 'bg-gray-100 text-gray-700',
+  data_pending: 'bg-yellow-500/10 text-yellow-700 dark:text-yellow-400',
+  data_received: 'bg-blue-500/10 text-blue-700 dark:text-blue-400',
+  in_progress: 'bg-indigo-500/10 text-indigo-700 dark:text-indigo-400',
+  filed: 'bg-green-500/10 text-green-700 dark:text-green-400',
+  overdue: 'bg-red-500/10 text-red-700 dark:text-red-400',
+  upcoming: 'bg-gray-500/10 text-gray-700 dark:text-gray-400',
 }
 
 function formatDate(dateStr: string | null | undefined): string {
@@ -63,19 +65,25 @@ const columns: ColumnDef<Record<string, unknown>>[] = [
   {
     accessorKey: 'due_date',
     header: 'Due Date',
-    cell: ({ row }) => formatDate(row.getValue('due_date') as string),
+    cell: ({ row }) => {
+      const dateStr = row.original.due_date as string | null
+      if (!dateStr) return '-'
+      const dueDate = new Date(dateStr)
+      const now = new Date()
+      const daysLeft = Math.ceil((dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+      const isOverdue = daysLeft < 0
+      return (
+        <div>
+          <p className={isOverdue ? 'text-red-600 dark:text-red-400 font-medium' : ''}>{formatDate(dateStr)}</p>
+          {isOverdue && <p className="text-xs text-red-600 dark:text-red-400">{Math.abs(daysLeft)}d overdue</p>}
+        </div>
+      )
+    },
   },
   {
     accessorKey: 'status',
     header: 'Status',
-    cell: ({ row }) => {
-      const status = row.getValue('status') as string
-      return (
-        <Badge variant="secondary" className={statusColors[status] || 'bg-gray-100 text-gray-700'}>
-          {(status || '').replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
-        </Badge>
-      )
-    },
+    cell: ({ row }) => <StatusBadge status={row.getValue('status') as string} />,
   },
   {
     accessorKey: 'data_received',
@@ -83,9 +91,15 @@ const columns: ColumnDef<Record<string, unknown>>[] = [
     cell: ({ row }) => {
       const received = row.getValue('data_received') as boolean
       return received ? (
-        <CheckCircle2 className="h-4 w-4 text-green-500" />
+        <span className="flex items-center gap-1 text-green-600 dark:text-green-400">
+          <CheckCircle2 className="h-4 w-4" />
+          <span className="text-xs">Received</span>
+        </span>
       ) : (
-        <Clock className="h-4 w-4 text-gray-400" />
+        <span className="flex items-center gap-1 text-muted-foreground">
+          <Clock className="h-4 w-4" />
+          <span className="text-xs">Pending</span>
+        </span>
       )
     },
   },

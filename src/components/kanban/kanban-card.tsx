@@ -6,8 +6,8 @@ import { useRouter } from 'next/navigation'
 import { Badge } from '@/components/ui/badge'
 
 const priorityDots: Record<string, string> = {
-  low: 'bg-gray-400',
-  medium: 'bg-blue-500',
+  low: 'bg-green-500',
+  medium: 'bg-yellow-500',
   high: 'bg-orange-500',
   urgent: 'bg-red-500',
 }
@@ -21,6 +21,7 @@ interface KanbanCardProps {
     due_date: string | null
     clients?: { business_name: string } | null
     task_assignees?: { employee_id: string; employees: { id: string; name: string; avatar_url?: string | null } }[]
+    task_checklist_items?: { id: string; is_checked: boolean }[]
     reviewer_1_id?: string | null
     reviewer_2_id?: string | null
     current_review_level?: number
@@ -49,6 +50,12 @@ export function KanbanCard({ task }: KanbanCardProps) {
   const hasReview = !!(task.reviewer_1_id)
   const reviewLevel = task.current_review_level
 
+  // Checklist progress
+  const checklist = task.task_checklist_items || []
+  const checklistTotal = checklist.length
+  const checklistDone = checklist.filter(item => item.is_checked).length
+  const checklistPercent = checklistTotal > 0 ? Math.round((checklistDone / checklistTotal) * 100) : 0
+
   return (
     <div
       ref={setNodeRef}
@@ -57,9 +64,12 @@ export function KanbanCard({ task }: KanbanCardProps) {
       {...listeners}
       className="rounded-lg border bg-card text-card-foreground p-3 shadow-sm cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow space-y-2"
     >
+      {/* Priority bar */}
+      <div className={`h-0.5 w-8 rounded-full ${priorityDots[task.priority] || 'bg-gray-400'}`} />
+
       {/* Task name — clickable */}
       <p
-        className="text-sm font-medium leading-tight cursor-pointer hover:text-primary hover:underline"
+        className="text-sm font-medium leading-tight cursor-pointer hover:text-primary transition-colors"
         onClick={(e) => { e.stopPropagation(); router.push(`/task/${task.id}`) }}
       >
         {task.task_name}
@@ -70,22 +80,37 @@ export function KanbanCard({ task }: KanbanCardProps) {
         <p className="text-xs text-muted-foreground truncate">{task.clients.business_name}</p>
       )}
 
+      {/* Checklist progress bar */}
+      {checklistTotal > 0 && (
+        <div className="flex items-center gap-2">
+          <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
+            <div
+              className={`h-full rounded-full transition-all ${checklistPercent === 100 ? 'bg-green-500' : 'bg-primary'}`}
+              style={{ width: `${checklistPercent}%` }}
+            />
+          </div>
+          <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+            {checklistDone}/{checklistTotal}
+          </span>
+        </div>
+      )}
+
       {/* Bottom row: priority dot, due date, review badge, avatars */}
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           {/* Priority dot */}
-          <span className={`inline-block size-2.5 rounded-full ${priorityDots[task.priority] || 'bg-gray-400'}`}
+          <span className={`inline-block size-2 rounded-full ${priorityDots[task.priority] || 'bg-gray-400'}`}
             title={task.priority}
           />
           {/* Due date */}
           {task.due_date && (
-            <span className={`text-xs ${isOverdue ? 'text-red-600 dark:text-red-400 font-medium' : 'text-muted-foreground'}`}>
+            <span className={`text-[11px] ${isOverdue ? 'text-red-600 dark:text-red-400 font-medium' : 'text-muted-foreground'}`}>
               {new Date(task.due_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
             </span>
           )}
           {/* Review badge */}
           {hasReview && reviewLevel && task.status === 'in_review' && (
-            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-300">
+            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-purple-500/10 text-purple-700 dark:text-purple-400">
               L{reviewLevel}
             </Badge>
           )}

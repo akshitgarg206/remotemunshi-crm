@@ -7,23 +7,29 @@ import { Users, UserCheck, UserX, UserPlus } from 'lucide-react'
 import { DataGrid } from '@/components/data-grid/data-grid'
 import { CsvImporter } from '@/components/csv-import/csv-importer'
 import { KpiCard } from '@/components/kpi-cards/kpi-card'
-import { Badge } from '@/components/ui/badge'
+import { StatusBadge } from '@/components/status-badge'
 import { useClients, useClientKpis } from '@/hooks/queries/use-clients'
-
-const statusColors: Record<string, string> = {
-  active: 'bg-green-500/10 text-green-700 dark:text-green-300',
-  inactive: 'bg-gray-500/10 text-gray-700 dark:text-gray-300',
-  on_hold: 'bg-yellow-500/10 text-yellow-700 dark:text-yellow-300',
-  closed: 'bg-red-500/10 text-red-700 dark:text-red-300',
-}
 
 const columns: ColumnDef<Record<string, unknown>>[] = [
   {
     accessorKey: 'business_name',
-    header: 'Business Name',
-    cell: ({ row }) => (
-      <span className="font-medium">{row.getValue('business_name') as string}</span>
-    ),
+    header: 'Client',
+    cell: ({ row }) => {
+      const name = (row.getValue('business_name') as string) || (row.original.contact_name as string) || 'Unnamed'
+      const initials = name.slice(0, 2).toUpperCase()
+      const code = row.original.client_code as string | undefined
+      return (
+        <div className="flex items-center gap-3">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-semibold shrink-0">
+            {initials}
+          </div>
+          <div className="min-w-0">
+            <p className="font-medium truncate">{name}</p>
+            {code && <p className="text-xs text-muted-foreground font-mono">{code}</p>}
+          </div>
+        </div>
+      )
+    },
   },
   { accessorKey: 'contact_name', header: 'Contact Person' },
   { accessorKey: 'mobile', header: 'Mobile' },
@@ -39,14 +45,7 @@ const columns: ColumnDef<Record<string, unknown>>[] = [
   {
     accessorKey: 'status',
     header: 'Status',
-    cell: ({ row }) => {
-      const status = row.getValue('status') as string
-      return (
-        <Badge variant="secondary" className={statusColors[status] || ''}>
-          {status}
-        </Badge>
-      )
-    },
+    cell: ({ row }) => <StatusBadge status={row.getValue('status') as string} />,
   },
 ]
 
@@ -90,6 +89,10 @@ export default function ClientListPage() {
         pageCount={clientsData?.meta?.totalPages || 1}
         totalItems={clientsData?.meta?.total}
         onPageChange={setPage}
+        emptyTitle="No clients yet"
+        emptyDescription="Add your first client to get started."
+        emptyActionLabel="Add Client"
+        onEmptyAction={() => router.push('/client/add')}
       />
 
       <CsvImporter module="clients" open={importOpen} onOpenChange={setImportOpen} />

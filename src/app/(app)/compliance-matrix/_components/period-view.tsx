@@ -16,11 +16,11 @@ interface PeriodViewProps {
 const monthLabels = ['Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar']
 
 function cellColor(filed: number, total: number): string {
-  if (total === 0) return ''
+  if (total === 0) return 'text-muted-foreground/50'
   const pct = (filed / total) * 100
-  if (pct === 100) return 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
-  if (pct >= 50) return 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400'
-  return 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
+  if (pct === 100) return 'bg-green-500/15 dark:bg-green-500/20 text-green-700 dark:text-green-400 font-medium'
+  if (pct >= 50) return 'bg-yellow-500/15 dark:bg-yellow-500/20 text-yellow-700 dark:text-yellow-400 font-medium'
+  return 'bg-red-500/15 dark:bg-red-500/20 text-red-700 dark:text-red-400 font-medium'
 }
 
 export function PeriodView({ year }: PeriodViewProps) {
