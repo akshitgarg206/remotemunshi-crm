@@ -2,9 +2,9 @@
 
 > **ACTIVE GOAL:** Build Remote Munshi CRM — full Turia clone with REST API + webhooks (Next.js 16 + Supabase)
 >
-> **STATUS:** UI/UX POLISH COMPLETE
+> **STATUS:** VISUAL SMOKE TESTING + BUG FIXING
 >
-> **NEXT STEP:** All 5 waves of UI polish implemented and deployed. Ready for next user request.
+> **NEXT STEP:** Finish 3 remaining smoke test pages (settings, reports, notifications). Then fix 2 bugs (Data Tracker Select.Item crash, Deadlines API route/filter). Then RBAC testing across hierarchy. 14 test accounts created for all roles.
 
 **Last Updated:** 2026-02-09
 

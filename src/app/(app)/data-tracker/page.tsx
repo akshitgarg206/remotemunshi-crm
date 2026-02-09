@@ -213,12 +213,12 @@ export default function DataTrackerPage() {
           max={2099}
         />
 
-        <Select value={selectedService} onValueChange={setSelectedService}>
+        <Select value={selectedService || '__all__'} onValueChange={(v) => setSelectedService(v === '__all__' ? '' : v)}>
           <SelectTrigger className="w-[200px]">
             <SelectValue placeholder="All Services" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All Services</SelectItem>
+            <SelectItem value="__all__">All Services</SelectItem>
             {servicesList.map((s) => (
               <SelectItem key={s.id} value={s.id as string}>{s.name as string}</SelectItem>
             ))}

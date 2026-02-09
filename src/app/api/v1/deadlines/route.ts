@@ -19,7 +19,14 @@ export const GET = apiHandler(async (req, { supabase }) => {
 
   if (filters.service_id) query = query.eq('service_id', filters.service_id)
   if (filters.client_id) query = query.eq('client_id', filters.client_id)
-  if (filters.status) query = query.eq('status', filters.status)
+  if (filters.status) {
+    const statuses = (filters.status as string).split(',').map(s => s.trim()).filter(Boolean)
+    if (statuses.length === 1) {
+      query = query.eq('status', statuses[0])
+    } else if (statuses.length > 1) {
+      query = query.in('status', statuses)
+    }
+  }
 
   // Month/year filter: filter by period_start falling within the month
   if (filters.month && filters.year) {

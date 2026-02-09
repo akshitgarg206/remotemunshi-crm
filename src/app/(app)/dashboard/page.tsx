@@ -23,7 +23,7 @@ export default function DashboardPage() {
 
   const { data: deadlineKpis, isLoading: deadlinesLoading } = useQuery({
     queryKey: ['deadline-kpis'],
-    queryFn: () => apiFetch('/api/v1/deadlines/kpis'),
+    queryFn: () => apiFetch('/api/v1/deadlines/kpi'),
   })
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
