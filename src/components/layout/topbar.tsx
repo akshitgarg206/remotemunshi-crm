@@ -5,10 +5,11 @@ import { usePathname, useRouter } from 'next/navigation'
 import {
   LayoutDashboard, UserPlus, Users, Briefcase, Package, CheckSquare,
   FileKey, Award, Lock, FileText, ClipboardCheck, CalendarClock,
-  UsersRound, AlertTriangle, BarChart3, Settings, Repeat, Headphones,
-  Zap, ListTodo, Bell, User, LogOut, Menu
+  UsersRound, AlertTriangle, BarChart3, Settings, Repeat, Headphones, Grid3X3,
+  Zap, ListTodo, Bell, User, LogOut, Menu, Search, type LucideIcon
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuSeparator, DropdownMenuTrigger
@@ -22,25 +23,73 @@ import { usePermissions } from '@/hooks/use-permissions'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 
-const sidebarNavItems = [
-  { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, module: null },
-  { label: 'Leads', href: '/leads', icon: UserPlus, module: 'leads' },
-  { label: 'Clients', href: '/client', icon: Users, module: 'clients' },
-  { label: 'Services', href: '/services', icon: Briefcase, module: 'services' },
-  { label: 'Bundles', href: '/bundles', icon: Package, module: 'bundles' },
-  { label: 'Tasks', href: '/task', icon: CheckSquare, module: 'tasks' },
-  { label: 'Task Templates', href: '/task/templates', icon: Repeat, module: 'tasks' },
-  { label: 'Digital Signature', href: '/digital-signature', icon: FileKey, module: 'dscs' },
-  { label: 'Licenses', href: '/license', icon: Award, module: 'licenses' },
-  { label: 'Passwords', href: '/passwords', icon: Lock, module: 'passwords' },
-  { label: 'Documents', href: '/documents', icon: FileText, module: 'documents' },
-  { label: 'Compliance', href: '/compliance-tracker', icon: ClipboardCheck, module: 'compliance' },
-  { label: 'Data Tracker', href: '/data-tracker', icon: CalendarClock, module: 'services' },
-  { label: 'OmniDesk', href: '/support', icon: Headphones, module: 'communications' },
-  { label: 'Team', href: '/team', icon: UsersRound, module: 'team' },
-  { label: 'Notices', href: '/notice-management', icon: AlertTriangle, module: 'notices' },
-  { label: 'Reports', href: '/reports', icon: BarChart3, module: 'reports' },
-  { label: 'Settings', href: '/settings', icon: Settings, module: 'settings' },
+interface NavItem {
+  label: string
+  href: string
+  icon: LucideIcon
+  module: string | null
+}
+
+interface NavGroup {
+  label: string
+  items: NavItem[]
+}
+
+const navGroups: NavGroup[] = [
+  {
+    label: 'Overview',
+    items: [
+      { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, module: null },
+    ],
+  },
+  {
+    label: 'CRM',
+    items: [
+      { label: 'Leads', href: '/leads', icon: UserPlus, module: 'leads' },
+      { label: 'Clients', href: '/client', icon: Users, module: 'clients' },
+      { label: 'Services', href: '/services', icon: Briefcase, module: 'services' },
+      { label: 'Bundles', href: '/bundles', icon: Package, module: 'bundles' },
+    ],
+  },
+  {
+    label: 'Tasks',
+    items: [
+      { label: 'Tasks', href: '/task', icon: CheckSquare, module: 'tasks' },
+      { label: 'Templates', href: '/task/templates', icon: Repeat, module: 'tasks' },
+    ],
+  },
+  {
+    label: 'Records',
+    items: [
+      { label: 'Digital Signature', href: '/digital-signature', icon: FileKey, module: 'dscs' },
+      { label: 'Licenses', href: '/license', icon: Award, module: 'licenses' },
+      { label: 'Passwords', href: '/passwords', icon: Lock, module: 'passwords' },
+      { label: 'Documents', href: '/documents', icon: FileText, module: 'documents' },
+    ],
+  },
+  {
+    label: 'Compliance',
+    items: [
+      { label: 'Compliance', href: '/compliance-tracker', icon: ClipboardCheck, module: 'compliance' },
+      { label: 'Data Tracker', href: '/data-tracker', icon: CalendarClock, module: 'services' },
+      { label: 'Matrix', href: '/compliance-matrix', icon: Grid3X3, module: 'services' },
+      { label: 'Notices', href: '/notice-management', icon: AlertTriangle, module: 'notices' },
+    ],
+  },
+  {
+    label: 'Support',
+    items: [
+      { label: 'OmniDesk', href: '/support', icon: Headphones, module: 'communications' },
+    ],
+  },
+  {
+    label: 'Admin',
+    items: [
+      { label: 'Team', href: '/team', icon: UsersRound, module: 'team' },
+      { label: 'Reports', href: '/reports', icon: BarChart3, module: 'reports' },
+      { label: 'Settings', href: '/settings', icon: Settings, module: 'settings' },
+    ],
+  },
 ]
 
 const quickLinks = [
@@ -58,11 +107,11 @@ export function Topbar() {
   const { canRead, isLoading } = usePermissions()
   const supabase = createClient()
 
-  const visibleNavItems = sidebarNavItems.filter((item) => {
+  const isItemVisible = (item: NavItem) => {
     if (!item.module) return true
     if (isLoading) return true
     return canRead(item.module)
-  })
+  }
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
@@ -71,12 +120,12 @@ export function Topbar() {
 
   return (
     <>
-      <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b bg-background px-4">
+      <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 gap-4">
         {/* Mobile menu toggle */}
         <Button
           variant="ghost"
           size="icon"
-          className="lg:hidden"
+          className="lg:hidden shrink-0"
           onClick={() => setOpen(true)}
         >
           <Menu className="h-5 w-5" />
@@ -96,6 +145,9 @@ export function Topbar() {
             )
           })}
         </nav>
+
+        {/* Spacer for mobile */}
+        <div className="flex-1 md:hidden" />
 
         {/* Right side */}
         <div className="flex items-center gap-1">
@@ -130,7 +182,7 @@ export function Topbar() {
         </div>
       </header>
 
-      {/* Mobile sidebar drawer */}
+      {/* Mobile sidebar drawer — grouped navigation */}
       <Sheet open={isOpen} onOpenChange={setOpen}>
         <SheetContent side="left" className="w-72 p-0">
           <SheetHeader className="border-b px-4 py-3">
@@ -142,25 +194,39 @@ export function Topbar() {
             </SheetTitle>
           </SheetHeader>
           <ScrollArea className="h-[calc(100vh-4rem)]">
-            <nav className="flex flex-col gap-1 p-2">
-              {visibleNavItems.map((item) => {
-                const isActive = pathname.startsWith(item.href)
-                const Icon = item.icon
+            <nav className="flex flex-col gap-1 p-3">
+              {navGroups.map((group) => {
+                const visibleItems = group.items.filter(isItemVisible)
+                if (visibleItems.length === 0) return null
+
                 return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    onClick={() => setOpen(false)}
-                    className={cn(
-                      'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors',
-                      isActive
-                        ? 'bg-primary/10 text-primary font-medium'
-                        : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-                    )}
-                  >
-                    <Icon className="h-5 w-5 shrink-0" />
-                    <span>{item.label}</span>
-                  </Link>
+                  <div key={group.label} className="mb-1">
+                    <p className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+                      {group.label}
+                    </p>
+                    <div className="mt-0.5 flex flex-col gap-0.5">
+                      {visibleItems.map((item) => {
+                        const isActive = pathname.startsWith(item.href)
+                        const Icon = item.icon
+                        return (
+                          <Link
+                            key={item.href}
+                            href={item.href}
+                            onClick={() => setOpen(false)}
+                            className={cn(
+                              'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors',
+                              isActive
+                                ? 'bg-primary/10 text-primary font-medium'
+                                : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                            )}
+                          >
+                            <Icon className="h-4 w-4 shrink-0" />
+                            <span>{item.label}</span>
+                          </Link>
+                        )
+                      })}
+                    </div>
+                  </div>
                 )
               })}
             </nav>

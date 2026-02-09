@@ -9,13 +9,14 @@ import {
   useReactTable,
 } from '@tanstack/react-table'
 import { useState } from 'react'
-import { ArrowUpDown, Download, Plus, Search, Upload } from 'lucide-react'
+import { ArrowUpDown, ChevronLeft, ChevronRight, Download, Plus, Search, Upload } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table'
 import { Skeleton } from '@/components/ui/skeleton'
+import { EmptyState } from '@/components/empty-state'
 
 interface DataGridProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
@@ -32,6 +33,10 @@ interface DataGridProps<TData, TValue> {
   page?: number
   onPageChange?: (page: number) => void
   totalItems?: number
+  emptyTitle?: string
+  emptyDescription?: string
+  emptyActionLabel?: string
+  onEmptyAction?: () => void
 }
 
 export function DataGrid<TData, TValue>({
@@ -49,6 +54,10 @@ export function DataGrid<TData, TValue>({
   page = 1,
   onPageChange,
   totalItems,
+  emptyTitle,
+  emptyDescription,
+  emptyActionLabel,
+  onEmptyAction,
 }: DataGridProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>([])
   const [searchValue, setSearchValue] = useState('')
@@ -66,6 +75,9 @@ export function DataGrid<TData, TValue>({
     setSearchValue(value)
     onSearch?.(value)
   }
+
+  const hasSearchFilter = searchValue.trim().length > 0
+  const isEmpty = !isLoading && data.length === 0
 
   return (
     <div className="space-y-4">
@@ -103,13 +115,13 @@ export function DataGrid<TData, TValue>({
       </div>
 
       {/* Table */}
-      <div className="rounded-md border">
+      <div className="rounded-lg border">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
+              <TableRow key={headerGroup.id} className="bg-muted/50 hover:bg-muted/50">
                 {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id}>
+                  <TableHead key={header.id} className="text-xs font-semibold uppercase tracking-wider">
                     {header.isPlaceholder ? null : (
                       <div
                         className={
@@ -132,11 +144,15 @@ export function DataGrid<TData, TValue>({
           </TableHeader>
           <TableBody>
             {isLoading ? (
+              // Content-aware skeleton: varied widths per column
               Array.from({ length: 5 }).map((_, i) => (
                 <TableRow key={i}>
                   {columns.map((_, j) => (
                     <TableCell key={j}>
-                      <Skeleton className="h-4 w-full" />
+                      <div className="flex items-center gap-2">
+                        {j === 0 && <Skeleton className="h-8 w-8 rounded-full shrink-0" />}
+                        <Skeleton className={`h-4 ${j === 0 ? 'w-32' : j === columns.length - 1 ? 'w-16' : 'w-24'}`} />
+                      </div>
                     </TableCell>
                   ))}
                 </TableRow>
@@ -145,7 +161,7 @@ export function DataGrid<TData, TValue>({
               table.getRowModel().rows.map((row) => (
                 <TableRow
                   key={row.id}
-                  className={onRowClick ? 'cursor-pointer hover:bg-muted/50' : ''}
+                  className={onRowClick ? 'cursor-pointer hover:bg-muted/50 transition-colors' : ''}
                   onClick={() => onRowClick?.(row.original)}
                 >
                   {row.getVisibleCells().map((cell) => (
@@ -157,8 +173,15 @@ export function DataGrid<TData, TValue>({
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center text-muted-foreground">
-                  No results found.
+                <TableCell colSpan={columns.length} className="p-0">
+                  <EmptyState
+                    variant={hasSearchFilter ? 'no-results' : 'no-data'}
+                    title={hasSearchFilter ? 'No results found' : emptyTitle}
+                    description={hasSearchFilter ? `No matches for "${searchValue}". Try a different search term.` : emptyDescription}
+                    actionLabel={hasSearchFilter ? 'Clear search' : emptyActionLabel}
+                    onAction={hasSearchFilter ? () => handleSearch('') : onEmptyAction}
+                    className="py-12"
+                  />
                 </TableCell>
               </TableRow>
             )}
@@ -170,27 +193,31 @@ export function DataGrid<TData, TValue>({
       {pageCount > 1 && (
         <div className="flex items-center justify-between">
           <p className="text-sm text-muted-foreground">
-            {totalItems !== undefined && `${totalItems} total items`}
+            {totalItems !== undefined && (
+              <>
+                <span className="font-medium text-foreground">{totalItems}</span> total items
+              </>
+            )}
           </p>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
             <Button
               variant="outline"
-              size="sm"
+              size="icon-sm"
               onClick={() => onPageChange?.(page - 1)}
               disabled={page <= 1}
             >
-              Previous
+              <ChevronLeft className="h-4 w-4" />
             </Button>
-            <span className="text-sm text-muted-foreground">
-              Page {page} of {pageCount}
+            <span className="text-sm text-muted-foreground px-3">
+              {page} / {pageCount}
             </span>
             <Button
               variant="outline"
-              size="sm"
+              size="icon-sm"
               onClick={() => onPageChange?.(page + 1)}
               disabled={page >= pageCount}
             >
-              Next
+              <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
         </div>
