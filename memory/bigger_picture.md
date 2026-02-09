@@ -2,9 +2,9 @@
 
 > **ACTIVE GOAL:** Build Remote Munshi CRM — full Turia clone with REST API + webhooks (Next.js 16 + Supabase)
 >
-> **STATUS:** VISUAL SMOKE TESTING + BUG FIXING
+> **STATUS:** SMOKE TESTING + BUG FIXING COMPLETE
 >
-> **NEXT STEP:** Finish 3 remaining smoke test pages (settings, reports, notifications). Then fix 2 bugs (Data Tracker Select.Item crash, Deadlines API route/filter). Then RBAC testing across hierarchy. 14 test accounts created for all roles.
+> **NEXT STEP:** All 12 smoke test pages pass. 2 bugs fixed (Data Tracker Select.Item, Deadlines API). RBAC verified across 5 roles (Super Admin, IT Admin, Manager, Associate, Article Assistant). 14 test accounts active. Ready for next feature or deployment testing.
 
 **Last Updated:** 2026-02-09
 
@@ -121,6 +121,9 @@
 | 2026-02-09 | UI/UX Polish — Wave 3 (List Pages) | Client list with avatar initials + code subtitle, Kanban cards with priority bars + checklist progress, Data Tracker with overdue day counts, Compliance Matrix heat-map cell colors |
 | 2026-02-09 | UI/UX Polish — Wave 4 (Forms & Support) | Task add form 2-column layout (description+steps left, metadata right), Client add multi-step wizard (4 steps), Settings page left sidebar navigation, Portal dashboard branded card grid |
 | 2026-02-09 | UI/UX Polish — Wave 5 (Reports & Misc) | NotificationPanel slide-out (grouped by date, All/Unread tabs, mark-all-read, unread badge), Reports hub with descriptions + chevron arrows |
+| 2026-02-09 | Visual Smoke Testing (12 pages) | All 12 pages verified via Playwright: login, dashboard, sidebar, client list, task list, kanban, data tracker, task add, client add, settings, reports, notification panel. 13 screenshots saved. |
+| 2026-02-09 | Bug fixes: Data Tracker + Deadlines API | Fixed Select.Item empty value crash (sentinel __all__), dashboard KPI endpoint typo (/kpis→/kpi), deadlines status filter comma-separated values (.in() instead of .eq()) |
+| 2026-02-09 | RBAC testing across hierarchy | Verified 5 roles: Super Admin (full), IT Admin (full), Manager (no Settings), Associate (no Settings), Article Assistant (Team only). 14 test accounts created for all levels. |
 
 ### Upcoming
 | Item | Priority | Depends On |

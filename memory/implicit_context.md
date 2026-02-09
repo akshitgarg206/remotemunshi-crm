@@ -1,17 +1,17 @@
 # Implicit Context
 
-> **RESUME BRIEF:** Contact Portal built and deployed (Phases 1-3). Applied missing migrations 00020-00025 to Supabase. Portal: magic link auth, 9 read-only API routes, full UI (login, dashboard, client detail with 7 tabs). **IMMEDIATE NEXT:** Test portal end-to-end (create contact with portal_enabled, test magic link flow). Then test employee auth on live deployment. Supabase project ID: `atsemlszcgcojdoqjplt`. IMPORTANT: always push to both `main` AND `master` (`git push origin main && git push origin main:master`).
+> **RESUME BRIEF:** Visual smoke testing complete (12/12 pages pass). Fixed 2 bugs: Data Tracker Select.Item crash + Deadlines API (kpi typo + status filter). RBAC verified across 5 roles. 14 test accounts created. All committed and pushed. Supabase project ID: `atsemlszcgcojdoqjplt`. IMPORTANT: always push to both `main` AND `master` (`git push origin main && git push origin main:master`).
 
-**Last Updated:** 2026-02-07
+**Last Updated:** 2026-02-09
 
 ---
 
 ## Current Session
 
 ### Active Work
-- **Task:** Contact Portal — Phases 1-3 complete, deployed
-- **Approach:** 4-phase: DB+Auth → API routes → UI pages → Filing downloads (future). Phases 1-3 done.
-- **Files touched:** supabase/migrations/00025, src/lib/api/portal-handler.ts, src/middleware.ts, src/lib/supabase/middleware.ts, src/lib/validators/contacts.ts, src/app/api/v1/portal/* (11 routes), src/app/portal/* (5 pages)
+- **Task:** Visual smoke testing + bug fixing — COMPLETE
+- **Approach:** Playwright MCP browser testing of all 12 UI pages, then fix discovered bugs, then RBAC testing across hierarchy
+- **Files touched:** src/app/(app)/dashboard/page.tsx (kpi endpoint fix), src/app/(app)/data-tracker/page.tsx (Select.Item fix), src/app/api/v1/deadlines/route.ts (status filter fix)
 
 ### Decisions Made (with reasoning)
 | Decision | Why | Alternatives Rejected |
