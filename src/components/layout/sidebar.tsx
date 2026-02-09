@@ -6,7 +6,7 @@ import {
   LayoutDashboard, UserPlus, Users, Briefcase, Package, CheckSquare,
   FileKey, Award, Lock, FileText, ClipboardCheck, CalendarClock,
   UsersRound, AlertTriangle, BarChart3, Settings, ChevronLeft, ChevronRight,
-  Repeat, Headphones
+  Repeat, Headphones, Grid3X3
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useSidebarStore } from '@/stores/sidebar-store'
@@ -29,6 +29,7 @@ const navItems = [
   { label: 'Documents', href: '/documents', icon: FileText, module: 'documents' },
   { label: 'Compliance', href: '/compliance-tracker', icon: ClipboardCheck, module: 'compliance' },
   { label: 'Data Tracker', href: '/data-tracker', icon: CalendarClock, module: 'services' },
+  { label: 'Compliance Matrix', href: '/compliance-matrix', icon: Grid3X3, module: 'services' },
   { label: 'OmniDesk', href: '/support', icon: Headphones, module: 'communications' },
   { label: 'Team', href: '/team', icon: UsersRound, module: 'team' },
   { label: 'Notices', href: '/notice-management', icon: AlertTriangle, module: 'notices' },
