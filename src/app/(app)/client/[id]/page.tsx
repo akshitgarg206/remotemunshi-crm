@@ -58,46 +58,50 @@ import {
 // Color Maps
 // ---------------------------------------------------------------------------
 
+import { StatusBadge } from '@/components/status-badge'
+import { getStatusColor, formatStatusLabel } from '@/lib/status-colors'
+import { CheckSquare, CalendarClock } from 'lucide-react'
+
 const statusColors: Record<string, string> = {
-  active: 'bg-green-100 text-green-700',
-  inactive: 'bg-gray-100 text-gray-700',
-  on_hold: 'bg-yellow-100 text-yellow-700',
-  closed: 'bg-red-100 text-red-700',
+  active: 'bg-green-500/10 text-green-700 dark:text-green-400',
+  inactive: 'bg-gray-500/10 text-gray-700 dark:text-gray-400',
+  on_hold: 'bg-yellow-500/10 text-yellow-700 dark:text-yellow-400',
+  closed: 'bg-red-500/10 text-red-700 dark:text-red-400',
 }
 
 const taskStatusColors: Record<string, string> = {
-  pending: 'bg-yellow-100 text-yellow-700',
-  in_progress: 'bg-blue-100 text-blue-700',
-  completed: 'bg-green-100 text-green-700',
-  in_review: 'bg-purple-100 text-purple-700',
-  on_hold: 'bg-gray-100 text-gray-700',
-  cancelled: 'bg-red-100 text-red-700',
+  pending: 'bg-yellow-500/10 text-yellow-700 dark:text-yellow-400',
+  in_progress: 'bg-blue-500/10 text-blue-700 dark:text-blue-400',
+  completed: 'bg-green-500/10 text-green-700 dark:text-green-400',
+  in_review: 'bg-purple-500/10 text-purple-700 dark:text-purple-400',
+  on_hold: 'bg-gray-500/10 text-gray-700 dark:text-gray-400',
+  cancelled: 'bg-red-500/10 text-red-700 dark:text-red-400',
 }
 
 const taskPriorityColors: Record<string, string> = {
-  low: 'bg-muted text-muted-foreground',
-  medium: 'bg-blue-100 text-blue-700',
-  high: 'bg-orange-100 text-orange-700',
-  urgent: 'bg-red-100 text-red-700',
+  low: 'bg-green-500/10 text-green-700 dark:text-green-400',
+  medium: 'bg-yellow-500/10 text-yellow-700 dark:text-yellow-400',
+  high: 'bg-orange-500/10 text-orange-700 dark:text-orange-400',
+  urgent: 'bg-red-500/10 text-red-700 dark:text-red-400',
 }
 
 const docDirectionColors: Record<string, string> = {
-  in: 'bg-blue-100 text-blue-700',
-  out: 'bg-orange-100 text-orange-700',
-  returned: 'bg-gray-100 text-gray-700',
+  in: 'bg-blue-500/10 text-blue-700 dark:text-blue-400',
+  out: 'bg-orange-500/10 text-orange-700 dark:text-orange-400',
+  returned: 'bg-gray-500/10 text-gray-700 dark:text-gray-400',
 }
 
 const complianceStatusColors: Record<string, string> = {
-  pending: 'bg-yellow-100 text-yellow-700',
-  filed: 'bg-green-100 text-green-700',
-  overdue: 'bg-red-100 text-red-700',
-  in_progress: 'bg-blue-100 text-blue-700',
+  pending: 'bg-yellow-500/10 text-yellow-700 dark:text-yellow-400',
+  filed: 'bg-green-500/10 text-green-700 dark:text-green-400',
+  overdue: 'bg-red-500/10 text-red-700 dark:text-red-400',
+  in_progress: 'bg-blue-500/10 text-blue-700 dark:text-blue-400',
 }
 
 const noticeStatusColors: Record<string, string> = {
-  pending: 'bg-yellow-100 text-yellow-700',
-  responded: 'bg-green-100 text-green-700',
-  closed: 'bg-gray-100 text-gray-700',
+  pending: 'bg-yellow-500/10 text-yellow-700 dark:text-yellow-400',
+  responded: 'bg-green-500/10 text-green-700 dark:text-green-400',
+  closed: 'bg-gray-500/10 text-gray-700 dark:text-gray-400',
   overdue: 'bg-red-100 text-red-700',
 }
 
@@ -287,75 +291,94 @@ export default function ClientDetailPage() {
 
   return (
     <div className="space-y-6">
-      {/* ----------------------------------------------------------------- */}
-      {/* Header                                                            */}
-      {/* ----------------------------------------------------------------- */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => router.push('/client')}>
+      {/* Header */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex items-start gap-4">
+          <Button variant="ghost" size="icon" onClick={() => router.push('/client')} className="mt-1">
             <ArrowLeft className="h-4 w-4" />
           </Button>
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground font-bold text-lg shrink-0">
+            {(client.business_name || client.contact_name || 'U').slice(0, 2).toUpperCase()}
+          </div>
           <div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-wrap">
               <h1 className="text-2xl font-bold tracking-tight">
                 {client.business_name || client.contact_name || 'Unnamed Client'}
               </h1>
-              <Badge
-                variant="secondary"
-                className={statusColors[clientStatus] || ''}
-              >
-                {clientStatus.replace(/_/g, ' ')}
-              </Badge>
+              <StatusBadge status={clientStatus} />
+              {client.client_code && (
+                <Badge variant="outline" className="font-mono text-xs">
+                  {client.client_code}
+                </Badge>
+              )}
             </div>
-            {client.business_name && client.contact_name && (
-              <p className="text-muted-foreground mt-1">{client.contact_name}</p>
-            )}
+            <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground flex-wrap">
+              {client.business_name && client.contact_name && (
+                <span className="flex items-center gap-1"><Users className="h-3.5 w-3.5" /> {client.contact_name}</span>
+              )}
+              {client.mobile && (
+                <span className="flex items-center gap-1"><Phone className="h-3.5 w-3.5" /> {client.mobile}</span>
+              )}
+              {client.email && (
+                <span className="flex items-center gap-1"><Mail className="h-3.5 w-3.5" /> {client.email}</span>
+              )}
+              {(client.city || client.state) && (
+                <span className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5" /> {[client.city, client.state].filter(Boolean).join(', ')}</span>
+              )}
+            </div>
           </div>
         </div>
-        <Button onClick={() => router.push(`/client/${id}/edit`)}>
+        <Button onClick={() => router.push(`/client/${id}/edit`)} className="shrink-0">
           <Pencil className="mr-2 h-4 w-4" /> Edit Client
         </Button>
       </div>
 
-      {/* ----------------------------------------------------------------- */}
-      {/* Quick Info Cards                                                  */}
-      {/* ----------------------------------------------------------------- */}
-      <div className="grid gap-4 md:grid-cols-3">
-        {client.mobile && (
-          <Card>
-            <CardContent className="flex items-center gap-3 py-4">
-              <Phone className="h-5 w-5 text-muted-foreground" />
-              <div>
-                <p className="text-sm text-muted-foreground">Mobile</p>
-                <p className="font-medium">{client.mobile}</p>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-        {client.email && (
-          <Card>
-            <CardContent className="flex items-center gap-3 py-4">
-              <Mail className="h-5 w-5 text-muted-foreground" />
-              <div>
-                <p className="text-sm text-muted-foreground">Email</p>
-                <p className="font-medium">{client.email}</p>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-        {(client.city || client.state) && (
-          <Card>
-            <CardContent className="flex items-center gap-3 py-4">
-              <MapPin className="h-5 w-5 text-muted-foreground" />
-              <div>
-                <p className="text-sm text-muted-foreground">Location</p>
-                <p className="font-medium">
-                  {[client.city, client.state].filter(Boolean).join(', ')}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+      {/* Quick Stat Cards */}
+      <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
+        <Card>
+          <CardContent className="flex items-center gap-3 py-4">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <CheckSquare className="h-4 w-4" />
+            </div>
+            <div>
+              <p className="text-xl font-bold">{client.tasks?.length ?? 0}</p>
+              <p className="text-xs text-muted-foreground">Open Tasks</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="flex items-center gap-3 py-4">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-yellow-500/10 text-yellow-600 dark:text-yellow-400">
+              <CalendarClock className="h-4 w-4" />
+            </div>
+            <div>
+              <p className="text-xl font-bold">{client.deadlines?.length ?? 0}</p>
+              <p className="text-xs text-muted-foreground">Pending Deadlines</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="flex items-center gap-3 py-4">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400">
+              <Building2 className="h-4 w-4" />
+            </div>
+            <div>
+              <p className="text-xl font-bold">{client.services?.length ?? 0}</p>
+              <p className="text-xs text-muted-foreground">Services</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="flex items-center gap-3 py-4">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-green-500/10 text-green-600 dark:text-green-400">
+              <Users className="h-4 w-4" />
+            </div>
+            <div>
+              <p className="text-xl font-bold">{client.contacts?.length ?? 0}</p>
+              <p className="text-xs text-muted-foreground">Contacts</p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* ----------------------------------------------------------------- */}

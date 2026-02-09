@@ -40,21 +40,23 @@ import {
 
 // --- Constants ---
 
+import { StatusBadge } from '@/components/status-badge'
+
 const statusColors: Record<string, string> = {
-  pending: 'bg-yellow-100 text-yellow-700',
-  in_progress: 'bg-blue-100 text-blue-700',
-  in_review: 'bg-purple-100 text-purple-700',
-  request_changes: 'bg-orange-100 text-orange-700',
-  completed: 'bg-green-100 text-green-700',
-  on_hold: 'bg-gray-100 text-gray-700',
-  cancelled: 'bg-red-100 text-red-700',
+  pending: 'bg-yellow-500/10 text-yellow-700 dark:text-yellow-400',
+  in_progress: 'bg-blue-500/10 text-blue-700 dark:text-blue-400',
+  in_review: 'bg-purple-500/10 text-purple-700 dark:text-purple-400',
+  request_changes: 'bg-orange-500/10 text-orange-700 dark:text-orange-400',
+  completed: 'bg-green-500/10 text-green-700 dark:text-green-400',
+  on_hold: 'bg-gray-500/10 text-gray-700 dark:text-gray-400',
+  cancelled: 'bg-red-500/10 text-red-700 dark:text-red-400',
 }
 
 const priorityColors: Record<string, string> = {
-  low: 'bg-gray-100 text-gray-700',
-  medium: 'bg-blue-100 text-blue-700',
-  high: 'bg-orange-100 text-orange-700',
-  urgent: 'bg-red-100 text-red-700',
+  low: 'bg-green-500/10 text-green-700 dark:text-green-400',
+  medium: 'bg-yellow-500/10 text-yellow-700 dark:text-yellow-400',
+  high: 'bg-orange-500/10 text-orange-700 dark:text-orange-400',
+  urgent: 'bg-red-500/10 text-red-700 dark:text-red-400',
 }
 
 const statusOptions = [
@@ -223,32 +225,44 @@ export default function TaskDetailPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex items-start gap-3">
           <Button
             variant="ghost"
             size="icon"
             onClick={() => router.push(task.parent_task_id ? `/task/${task.parent_task_id}` : '/task')}
             title={task.parent_task_id ? 'Back to Parent Task' : 'Back to Tasks'}
+            className="mt-1"
           >
-            <ArrowLeft className="size-5" />
+            <ArrowLeft className="size-4" />
           </Button>
           <div>
             {task.parent_task_id && (
-              <p className="text-xs text-muted-foreground mb-1">Sub-task</p>
+              <Badge variant="outline" className="text-xs mb-1">Sub-task</Badge>
             )}
             <h1 className="text-2xl font-bold tracking-tight">{task.task_name}</h1>
-            <div className="mt-2 flex items-center gap-2">
-              <Badge variant="secondary" className={`text-sm px-3 py-1 ${statusColors[task.status] || ''}`}>
-                {formatLabel(task.status)}
-              </Badge>
-              <Badge variant="secondary" className={priorityColors[task.priority] || ''}>
-                {formatLabel(task.priority)}
-              </Badge>
+            <div className="mt-2 flex items-center gap-2 flex-wrap">
+              <StatusBadge status={task.status} />
+              <StatusBadge status={task.priority} />
+              {task.clients?.business_name && (
+                <Badge variant="outline" className="text-xs font-normal">
+                  {task.clients.business_name}
+                </Badge>
+              )}
+              {task.services?.name && (
+                <Badge variant="secondary" className="text-xs font-normal">
+                  {task.services.name}
+                </Badge>
+              )}
+              {task.due_date && (
+                <span className={`text-xs ${new Date(task.due_date) < new Date() ? 'text-red-600 dark:text-red-400 font-medium' : 'text-muted-foreground'}`}>
+                  Due {format(new Date(task.due_date), 'MMM d, yyyy')}
+                </span>
+              )}
             </div>
           </div>
         </div>
-        <Button variant="outline" size="sm">
+        <Button variant="outline" size="sm" className="shrink-0">
           <Pencil className="mr-2 size-4" /> Edit
         </Button>
       </div>
