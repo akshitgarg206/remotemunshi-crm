@@ -22,6 +22,7 @@ import { useSidebarStore } from '@/stores/sidebar-store'
 import { usePermissions } from '@/hooks/use-permissions'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
+import { NotificationPanel } from '@/components/notification-panel'
 
 interface NavItem {
   label: string
@@ -152,11 +153,7 @@ export function Topbar() {
         {/* Right side */}
         <div className="flex items-center gap-1">
           <ThemeToggle />
-          <Link href="/actions-center">
-            <Button variant="ghost" size="icon" className="relative">
-              <Bell className="h-5 w-5" />
-            </Button>
-          </Link>
+          <NotificationPanel />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="rounded-full">
