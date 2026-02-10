@@ -19,17 +19,6 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
-
-import {
   useWhatsAppAccounts,
   useCreateWhatsAppAccount,
   useUpdateWhatsAppAccount,
@@ -63,7 +52,6 @@ export default function WhatsAppSettingsPage() {
 
   const [sdkReady, setSdkReady] = useState(false)
   const [connecting, setConnecting] = useState(false)
-  const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
 
   const appId = process.env.NEXT_PUBLIC_META_APP_ID
 
@@ -225,11 +213,9 @@ export default function WhatsAppSettingsPage() {
   }
 
   const handleDelete = (id: string) => {
+    if (!confirm('Remove this WhatsApp number? Existing conversations will be preserved but no new messages will be sent or received.')) return
     deleteAccount.mutate(id, {
-      onSuccess: () => {
-        toast.success('Account removed')
-        setDeleteTarget(null)
-      },
+      onSuccess: () => toast.success('Account removed'),
       onError: () => toast.error('Failed to remove account'),
     })
   }
@@ -375,7 +361,7 @@ export default function WhatsAppSettingsPage() {
                           variant="ghost"
                           size="icon"
                           title="Remove"
-                          onClick={() => setDeleteTarget(account.id)}
+                          onClick={() => handleDelete(account.id)}
                         >
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
@@ -413,26 +399,6 @@ export default function WhatsAppSettingsPage() {
         </CardContent>
       </Card>
 
-      {/* Delete Confirmation */}
-      <AlertDialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Remove WhatsApp Number</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will remove the WhatsApp number from the CRM. Existing conversations will be preserved but no new messages will be sent or received on this number.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={() => deleteTarget && handleDelete(deleteTarget)}
-            >
-              Remove
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   )
 }
