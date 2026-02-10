@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { apiHandler } from '@/lib/api/handler'
 import { parsePagination, paginationMeta } from '@/lib/api/pagination'
 import { createMessageSchema } from '@/lib/validators/support-messages'
+import { sendTextMessage, sendMediaMessage } from '@/lib/whatsapp/client'
 
 export const GET = apiHandler(async (req, { params, supabase }) => {
   const { page, pageSize, offset } = parsePagination(req, { defaultPageSize: 50 })
@@ -65,6 +66,87 @@ export const POST = apiHandler(async (req, { params, supabase, employeeId }) => 
       .from('support_conversations')
       .update(updateData)
       .eq('id', params.id)
+  }
+
+  // Send outbound message via WhatsApp if applicable
+  if (validated.direction === 'outbound' && !validated.is_internal && message) {
+    try {
+      const { data: conv } = await supabase
+        .from('support_conversations')
+        .select('channel, contact_id, metadata')
+        .eq('id', params.id)
+        .single()
+
+      if (conv?.channel === 'whatsapp') {
+        const convMeta = (conv.metadata as Record<string, string>) || {}
+        const phoneNumberId = convMeta.phone_number_id
+
+        if (phoneNumberId) {
+          // Get access token
+          const { data: waAccount } = await supabase
+            .from('whatsapp_accounts')
+            .select('access_token')
+            .eq('phone_number_id', phoneNumberId)
+            .eq('status', 'active')
+            .single()
+
+          // Get recipient phone from contact
+          const { data: contact } = await supabase
+            .from('contacts')
+            .select('mobile')
+            .eq('id', conv.contact_id)
+            .single()
+
+          if (waAccount?.access_token && contact?.mobile) {
+            const recipientPhone = contact.mobile.replace(/\D/g, '')
+
+            let waResponse
+            if (validated.message_type === 'text' || !validated.attachments?.length) {
+              waResponse = await sendTextMessage({
+                phoneNumberId,
+                accessToken: waAccount.access_token,
+                to: recipientPhone,
+                body: validated.content,
+              })
+            } else if (validated.attachments?.length) {
+              const attachment = validated.attachments[0]
+              const mediaType = validated.message_type === 'image' ? 'image'
+                : validated.message_type === 'audio' ? 'audio'
+                : validated.message_type === 'video' ? 'video'
+                : 'document'
+
+              waResponse = await sendMediaMessage({
+                phoneNumberId,
+                accessToken: waAccount.access_token,
+                to: recipientPhone,
+                type: mediaType,
+                mediaUrl: attachment.url,
+                caption: validated.content !== attachment.name ? validated.content : undefined,
+                filename: attachment.name,
+              })
+            }
+
+            // Store WhatsApp message ID in message metadata for delivery tracking
+            if (waResponse?.messages?.[0]?.id) {
+              const msgMeta = (message.metadata as Record<string, unknown>) || {}
+              await supabase
+                .from('support_messages')
+                .update({
+                  metadata: {
+                    ...msgMeta,
+                    whatsapp_message_id: waResponse.messages[0].id,
+                    phone_number_id: phoneNumberId,
+                  },
+                })
+                .eq('id', message.id)
+            }
+          }
+        }
+      }
+    } catch (waError) {
+      // Log but don't fail the API response — message is saved in DB
+      console.error('Failed to send WhatsApp message:', waError)
+    }
   }
 
   return NextResponse.json({ success: true, data: message }, { status: 201 })

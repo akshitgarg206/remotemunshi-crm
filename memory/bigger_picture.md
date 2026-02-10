@@ -2,11 +2,11 @@
 
 > **ACTIVE GOAL:** Build Remote Munshi CRM — full Turia clone with REST API + webhooks (Next.js 16 + Supabase)
 >
-> **STATUS:** SMOKE TESTING + BUG FIXING COMPLETE
+> **STATUS:** IMPLEMENTING WhatsApp Business API Integration
 >
-> **NEXT STEP:** All 12 smoke test pages pass. 2 bugs fixed (Data Tracker Select.Item, Deadlines API). RBAC verified across 5 roles (Super Admin, IT Admin, Manager, Associate, Article Assistant). 14 test accounts active. Ready for next feature or deployment testing.
+> **NEXT STEP:** Phase 1-6: DB migration, Settings page (Embedded Signup), Webhook endpoint, Inbound processing, Outbound sending, Delivery receipts
 
-**Last Updated:** 2026-02-09
+**Last Updated:** 2026-02-10
 
 ---
 
@@ -124,6 +124,7 @@
 | 2026-02-09 | Visual Smoke Testing (12 pages) | All 12 pages verified via Playwright: login, dashboard, sidebar, client list, task list, kanban, data tracker, task add, client add, settings, reports, notification panel. 13 screenshots saved. |
 | 2026-02-09 | Bug fixes: Data Tracker + Deadlines API | Fixed Select.Item empty value crash (sentinel __all__), dashboard KPI endpoint typo (/kpis→/kpi), deadlines status filter comma-separated values (.in() instead of .eq()) |
 | 2026-02-09 | RBAC testing across hierarchy | Verified 5 roles: Super Admin (full), IT Admin (full), Manager (no Settings), Associate (no Settings), Article Assistant (Team only). 14 test accounts created for all levels. |
+| 2026-02-10 | Button testing + Select.Item fixes | Playwright tested 23 routes. Fixed Select.Item empty-value crashes on compliance-matrix (status filter), compliance-tracker (type+status filters), services (frequency selector). All use __all__/__none__ sentinels. |
 
 ### Upcoming
 | Item | Priority | Depends On |

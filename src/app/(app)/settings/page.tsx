@@ -6,7 +6,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 import {
   Building2, Users, Briefcase, Clock, Calendar, FileText,
-  Shield, Bell, Key, Webhook, ClipboardCheck, ChevronRight,
+  Shield, Bell, Key, Webhook, ClipboardCheck, ChevronRight, Phone,
 } from 'lucide-react'
 
 const settingsGroups = [
@@ -41,6 +41,7 @@ const settingsGroups = [
   {
     title: 'Integration',
     items: [
+      { label: 'WhatsApp Business', href: '/settings/whatsapp', icon: Phone, description: 'Connect WhatsApp numbers' },
       { label: 'API Keys', href: '/settings/api-keys', icon: Key, description: 'Manage API access' },
       { label: 'Webhooks', href: '/settings/webhooks', icon: Webhook, description: 'Event notifications' },
       { label: 'Email Templates', href: '/settings/email-templates', icon: FileText, description: 'Email formatting' },
