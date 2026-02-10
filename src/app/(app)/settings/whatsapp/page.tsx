@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import Script from 'next/script'
 import { toast } from 'sonner'
@@ -54,6 +54,12 @@ export default function WhatsAppSettingsPage() {
   const [connecting, setConnecting] = useState(false)
 
   const appId = process.env.NEXT_PUBLIC_META_APP_ID
+  const configId = process.env.NEXT_PUBLIC_META_CONFIG_ID
+
+  // Refs to coordinate the two async signals (FB.login callback + postMessage)
+  const signupCodeRef = useRef<string | null>(null)
+  const signupDataRef = useRef<{ phone_number_id: string; waba_id: string } | null>(null)
+  const signupProcessedRef = useRef(false)
 
   // Initialize Meta SDK
   useEffect(() => {
@@ -68,103 +74,26 @@ export default function WhatsAppSettingsPage() {
     }
   }, [appId])
 
-  // Handle Embedded Signup callback
-  const handleConnectWhatsApp = useCallback(() => {
-    if (!window.FB) {
-      toast.error('Meta SDK not loaded yet. Please try again.')
-      return
-    }
+  // Try to complete signup when both pieces arrive
+  const tryCompleteSignup = useCallback(async () => {
+    const code = signupCodeRef.current
+    const data = signupDataRef.current
+    if (!code || !data || signupProcessedRef.current) return
 
+    signupProcessedRef.current = true
     setConnecting(true)
 
-    window.FB.login(
-      async (response) => {
-        try {
-          const code = response.authResponse?.code
-          if (!code) {
-            toast.error('Connection cancelled or failed')
-            setConnecting(false)
-            return
-          }
-
-          // The Embedded Signup returns phone_number_id and waba_id in the
-          // session info extras. We read them from the popup's postMessage.
-          // For now, prompt user or extract from the response.
-          // Meta's Embedded Signup v2 passes these via the callback.
-
-          // We need to listen for the message event from the popup
-          toast.info('Processing connection...')
-
-          // Exchange code for token — the phone_number_id and waba_id
-          // come from the embedded signup session_info_extras
-          // For the flow: we'll handle this via the message event listener below
-        } catch (err) {
-          console.error('WhatsApp connection error:', err)
-          toast.error('Failed to connect WhatsApp')
-        } finally {
-          setConnecting(false)
-        }
-      },
-      {
-        config_id: '', // Will be set from Meta dashboard
-        response_type: 'code',
-        override_default_response_type: true,
-        extras: {
-          setup: {},
-          featureType: '',
-          sessionInfoVersion: '3',
-        },
-      }
-    )
-  }, [])
-
-  // Listen for Embedded Signup message events
-  useEffect(() => {
-    const handleMessage = async (event: MessageEvent) => {
-      if (event.origin !== 'https://www.facebook.com' && event.origin !== 'https://web.facebook.com') return
-
-      try {
-        const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data
-        if (data.type !== 'WA_EMBEDDED_SIGNUP') return
-
-        const { phone_number_id, waba_id } = data.data || {}
-        if (!phone_number_id || !waba_id) return
-
-        // Get the code from the FB.login response
-        // The code should already be available from the login callback
-        toast.info('Exchanging credentials...')
-
-        // We use a two-step approach:
-        // 1. User triggers FB.login (gets code)
-        // 2. Embedded Signup sends phone_number_id + waba_id via postMessage
-        // 3. We exchange code for token and save
-
-        // Store the signup data for the login callback to use
-        window.__waSignupData = { phone_number_id, waba_id }
-      } catch {
-        // Not a JSON message from Meta, ignore
-      }
-    }
-
-    window.addEventListener('message', handleMessage)
-    return () => window.removeEventListener('message', handleMessage)
-  }, [])
-
-  // Complete signup flow with code + signup data
-  const completeSignup = useCallback(async (code: string, phoneNumberId: string, wabaId: string) => {
     try {
-      setConnecting(true)
+      toast.info('Exchanging credentials...')
 
-      // Exchange code for permanent token
       const result = await exchangeToken.mutateAsync({
         code,
-        phone_number_id: phoneNumberId,
-        waba_id: wabaId,
+        phone_number_id: data.phone_number_id,
+        waba_id: data.waba_id,
       })
 
       const tokenData = result.data as Record<string, string>
 
-      // Save account
       await createAccount.mutateAsync({
         phone_number_id: tokenData.phone_number_id,
         waba_id: tokenData.waba_id,
@@ -179,8 +108,76 @@ export default function WhatsAppSettingsPage() {
       toast.error('Failed to complete WhatsApp setup')
     } finally {
       setConnecting(false)
+      signupCodeRef.current = null
+      signupDataRef.current = null
+      signupProcessedRef.current = false
     }
   }, [exchangeToken, createAccount])
+
+  // Listen for Embedded Signup message events (phone_number_id + waba_id)
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.origin !== 'https://www.facebook.com' && event.origin !== 'https://web.facebook.com') return
+
+      try {
+        const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data
+        if (data.type !== 'WA_EMBEDDED_SIGNUP') return
+
+        const { phone_number_id, waba_id } = data.data || {}
+        if (!phone_number_id || !waba_id) return
+
+        signupDataRef.current = { phone_number_id, waba_id }
+        tryCompleteSignup()
+      } catch {
+        // Not a JSON message from Meta, ignore
+      }
+    }
+
+    window.addEventListener('message', handleMessage)
+    return () => window.removeEventListener('message', handleMessage)
+  }, [tryCompleteSignup])
+
+  // Handle Embedded Signup — FB.login callback (gets the auth code)
+  const handleConnectWhatsApp = useCallback(() => {
+    if (!window.FB) {
+      toast.error('Meta SDK not loaded yet. Please try again.')
+      return
+    }
+    if (!configId) {
+      toast.error('WhatsApp config_id not set. Add NEXT_PUBLIC_META_CONFIG_ID to env vars.')
+      return
+    }
+
+    // Reset refs for fresh signup attempt
+    signupCodeRef.current = null
+    signupDataRef.current = null
+    signupProcessedRef.current = false
+    setConnecting(true)
+
+    window.FB.login(
+      (response) => {
+        const code = response.authResponse?.code
+        if (!code) {
+          toast.error('Connection cancelled or failed')
+          setConnecting(false)
+          return
+        }
+
+        signupCodeRef.current = code
+        tryCompleteSignup()
+      },
+      {
+        config_id: configId,
+        response_type: 'code',
+        override_default_response_type: true,
+        extras: {
+          setup: {},
+          featureType: '',
+          sessionInfoVersion: '3',
+        },
+      }
+    )
+  }, [configId, tryCompleteSignup])
 
   const handleSetDefault = (id: string) => {
     updateAccount.mutate(
@@ -242,7 +239,7 @@ export default function WhatsAppSettingsPage() {
           <h1 className="text-2xl font-bold tracking-tight">WhatsApp Business</h1>
           <p className="text-muted-foreground text-sm">Connect and manage WhatsApp Business numbers</p>
         </div>
-        <Button onClick={handleConnectWhatsApp} disabled={connecting || !appId}>
+        <Button onClick={handleConnectWhatsApp} disabled={connecting || !appId || !configId}>
           {connecting ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -257,12 +254,15 @@ export default function WhatsAppSettingsPage() {
         </Button>
       </div>
 
-      {!appId && (
+      {(!appId || !configId) && (
         <Card className="border-amber-500/50 bg-amber-500/5">
           <CardContent className="p-4">
             <p className="text-sm text-amber-600 dark:text-amber-400">
-              <strong>Setup required:</strong> Set <code>NEXT_PUBLIC_META_APP_ID</code>,{' '}
-              <code>META_APP_SECRET</code>, and <code>WHATSAPP_WEBHOOK_VERIFY_TOKEN</code> in your environment variables.
+              <strong>Setup required:</strong> Set these env vars:
+              {!appId && <><br />- <code>NEXT_PUBLIC_META_APP_ID</code> (Meta App ID)</>}
+              {!configId && <><br />- <code>NEXT_PUBLIC_META_CONFIG_ID</code> (Embedded Signup config ID from Meta Business Suite)</>}
+              <br />- <code>META_APP_SECRET</code> (server-side)
+              <br />- <code>WHATSAPP_WEBHOOK_VERIFY_TOKEN</code> (server-side)
             </p>
           </CardContent>
         </Card>
@@ -403,9 +403,3 @@ export default function WhatsAppSettingsPage() {
   )
 }
 
-// Extend window for signup data passing
-declare global {
-  interface Window {
-    __waSignupData?: { phone_number_id: string; waba_id: string }
-  }
-}
