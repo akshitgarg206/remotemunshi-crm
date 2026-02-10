@@ -34,6 +34,7 @@
 | 00022 | OmniDesk Support | 5 | support_conversations, support_messages, support_tickets, support_escalations, support_quick_replies + 6 enums + v_support_kpis view + ticket_number auto-gen trigger + Supabase Realtime |
 | 00024 | Onboarding Templates | — | ALTER recurring_tasks: trigger_type (recurring/onboarding), frequency nullable + partial index for onboarding lookup |
 | 00025 | Contact Portal | — | ALTER contacts: auth_user_id (UUID FK → auth.users), portal_enabled (BOOLEAN). RLS policies on 11 tables for portal read access. |
+| 00026 | WhatsApp Accounts | 1 | whatsapp_accounts (phone_number_id, waba_id, access_token, display_phone_number, status, is_default) + conversation lookup index |
 
 ### 1.2 Core FK Relationships
 
@@ -139,6 +140,9 @@ lead_services → client_services (copied on conversion)
 | Support Quick Replies | 2 | CRUD |
 | Support AI Reply | 1 | Generate reply via Claude API |
 | Compliance Matrix | 2 | Matrix view (4 modes: service/period/client/group) + KPI aggregates |
+| WhatsApp Accounts | 2 | List/create + detail/update/delete |
+| WhatsApp Token Exchange | 1 | Exchange auth code → permanent access token |
+| WhatsApp Webhook | 1 | GET verification + POST inbound messages/statuses (public, HMAC-secured) |
 
 ### 2.2 apiHandler Context
 
@@ -243,6 +247,12 @@ All 9 list pages follow: KPI cards → Tabs → DataGrid (search, sort, paginati
 | Portal Auth → Contacts | auth_user_id FK | Magic link auth creates Supabase auth user linked to contact |
 | Portal → Clients | client_contacts junction | Contacts see only their linked clients (read-only) |
 | Portal → Tasks/Deadlines/Compliance/Documents/DSCs/Licenses/Notices | client_id FK | Scoped to contact's linked clients via portalHandler |
+| WhatsApp Accounts → Employees | created_by FK | Account creator |
+| WhatsApp Webhook → Contacts | mobile field lookup | Auto-create contact from WhatsApp sender |
+| WhatsApp Webhook → Support Conversations | contact_id + channel + phone_number_id | Auto-create/find conversation per inbound message |
+| WhatsApp Webhook → Support Messages | conversation_id FK | Inbound messages inserted with whatsapp_message_id in metadata |
+| Support Messages (outbound) → WhatsApp Cloud API | phone_number_id from conversation metadata | Agent replies sent via WhatsApp when channel=whatsapp |
+| WhatsApp Status Updates → Support Messages | metadata->>whatsapp_message_id | Delivery receipts (sent/delivered/read) stored in message metadata |
 
 ---
 

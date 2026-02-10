@@ -2,9 +2,9 @@
 
 > **ACTIVE GOAL:** Build Remote Munshi CRM — full Turia clone with REST API + webhooks (Next.js 16 + Supabase)
 >
-> **STATUS:** IMPLEMENTING WhatsApp Business API Integration
+> **STATUS:** WhatsApp Business API Integration COMPLETE
 >
-> **NEXT STEP:** Phase 1-6: DB migration, Settings page (Embedded Signup), Webhook endpoint, Inbound processing, Outbound sending, Delivery receipts
+> **NEXT STEP:** User needs to set 3 env vars (NEXT_PUBLIC_META_APP_ID, META_APP_SECRET, WHATSAPP_WEBHOOK_VERIFY_TOKEN) and configure webhook URL in Meta dashboard. Then test end-to-end.
 
 **Last Updated:** 2026-02-10
 
@@ -125,6 +125,7 @@
 | 2026-02-09 | Bug fixes: Data Tracker + Deadlines API | Fixed Select.Item empty value crash (sentinel __all__), dashboard KPI endpoint typo (/kpis→/kpi), deadlines status filter comma-separated values (.in() instead of .eq()) |
 | 2026-02-09 | RBAC testing across hierarchy | Verified 5 roles: Super Admin (full), IT Admin (full), Manager (no Settings), Associate (no Settings), Article Assistant (Team only). 14 test accounts created for all levels. |
 | 2026-02-10 | Button testing + Select.Item fixes | Playwright tested 23 routes. Fixed Select.Item empty-value crashes on compliance-matrix (status filter), compliance-tracker (type+status filters), services (frequency selector). All use __all__/__none__ sentinels. |
+| 2026-02-10 | WhatsApp Business API Integration | Migration 00026 (whatsapp_accounts), Cloud API client (send/receive/media), webhook endpoint (HMAC verify), inbound processor (contact auto-create, conversation upsert, media→Storage), outbound sending on messages route, delivery receipts, Settings page (Embedded Signup + account list), React Query hooks, 3 new env vars |
 
 ### Upcoming
 | Item | Priority | Depends On |
