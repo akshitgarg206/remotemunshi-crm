@@ -2,9 +2,9 @@
 
 > **ACTIVE GOAL:** Build Remote Munshi CRM — full Turia clone with REST API + webhooks (Next.js 16 + Supabase)
 >
-> **STATUS:** WhatsApp Business API Integration COMPLETE
+> **STATUS:** WhatsApp Business API Integration COMPLETE + DEPLOYED
 >
-> **NEXT STEP:** User needs to set 3 env vars (NEXT_PUBLIC_META_APP_ID, META_APP_SECRET, WHATSAPP_WEBHOOK_VERIFY_TOKEN) and configure webhook URL in Meta dashboard. Then test end-to-end.
+> **NEXT STEP:** User needs to connect WhatsApp numbers via Embedded Signup (Settings > WhatsApp Business). Coexistence mode requires going through the Embedded Signup popup (not the Dev Portal "Add Phone Number"). Then test inbound/outbound messaging end-to-end.
 
 **Last Updated:** 2026-02-10
 

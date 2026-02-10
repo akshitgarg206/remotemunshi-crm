@@ -1,6 +1,6 @@
 # Implicit Context
 
-> **RESUME BRIEF:** Visual smoke testing complete (12/12 pages pass). Fixed 2 bugs: Data Tracker Select.Item crash + Deadlines API (kpi typo + status filter). RBAC verified across 5 roles. 14 test accounts created. All committed and pushed. Supabase project ID: `atsemlszcgcojdoqjplt`. IMPORTANT: always push to both `main` AND `master` (`git push origin main && git push origin main:master`).
+> **RESUME BRIEF:** WhatsApp Business API integration fully implemented and deployed. 13 files created/modified across 6 phases: DB migration 00026 (whatsapp_accounts), Cloud API client, inbound processor + media handler, webhook endpoint (HMAC verified), outbound sending on messages route, delivery receipts, Settings page (Embedded Signup UI), React Query hooks, 3 API routes. Env vars set on Vercel (META_APP_ID, META_APP_SECRET, WHATSAPP_WEBHOOK_VERIFY_TOKEN=remotemunshi_akshit206). Webhook subscribed to `messages` in Meta dashboard. `attachments` storage bucket created in Supabase with RLS. Build fix: replaced missing AlertDialog with confirm(). User still needs to connect WhatsApp numbers via Embedded Signup flow. Supabase project ID: `atsemlszcgcojdoqjplt`. IMPORTANT: always push to both `main` AND `master` (`git push origin main && git push origin main:master`).
 
 **Last Updated:** 2026-02-09
 
@@ -9,9 +9,10 @@
 ## Current Session
 
 ### Active Work
-- **Task:** Visual smoke testing + bug fixing — COMPLETE
-- **Approach:** Playwright MCP browser testing of all 12 UI pages, then fix discovered bugs, then RBAC testing across hierarchy
-- **Files touched:** src/app/(app)/dashboard/page.tsx (kpi endpoint fix), src/app/(app)/data-tracker/page.tsx (Select.Item fix), src/app/api/v1/deadlines/route.ts (status filter fix)
+- **Task:** WhatsApp Business API Integration — COMPLETE + DEPLOYED
+- **Approach:** 6-phase implementation: DB migration, Settings page, Webhook endpoint, Inbound processing, Outbound sending, Delivery receipts
+- **Files created:** supabase/migrations/00026_whatsapp_accounts.sql, src/lib/whatsapp/client.ts, src/lib/whatsapp/media.ts, src/lib/whatsapp/process-inbound.ts, src/app/api/v1/webhooks/whatsapp/route.ts, src/app/api/v1/whatsapp/accounts/route.ts, src/app/api/v1/whatsapp/accounts/[id]/route.ts, src/app/api/v1/whatsapp/token-exchange/route.ts, src/hooks/queries/use-whatsapp-accounts.ts, src/app/(app)/settings/whatsapp/page.tsx
+- **Files modified:** src/app/(app)/settings/page.tsx (added WhatsApp to Integration group), src/app/api/v1/support/conversations/[id]/messages/route.ts (outbound WhatsApp sending), .env.example (3 new vars)
 
 ### Decisions Made (with reasoning)
 | Decision | Why | Alternatives Rejected |
@@ -20,14 +21,21 @@
 | GitHub repo: `akshitgarg206/remotemunshi-crm` | User's chosen repo name and account | — |
 | Force-push main→master for production | Vercel production branch is `master`, CRM code is on `main`, no common ancestor | Change Vercel production branch setting (user would need dashboard access) |
 | Mumbai (bom1) function region | Users in India, default iad1 adds 200-300ms latency | — |
+| Native confirm() for delete dialog | Project doesn't have @/components/ui/alert-dialog component | AlertDialog from shadcn/ui (would need to add the component) |
+| HMAC signature verification via crypto.createHmac | Secure webhook validation per Meta requirements | No verification (insecure) |
+| createAdminClient() for webhook processing | Webhook is a public endpoint with no auth session — needs service_role to write to DB | createServerSupabaseClient (requires auth session) |
 
 ### Failed Attempts (DO NOT REPEAT THESE)
 | What I Tried | Why It Failed | What To Do Instead |
 |-------------|--------------|-------------------|
 | Previous sessions wrote entire app (70+ features) but never git committed | Context cleared → all code lost. bigger_picture.md claimed features existed but repo only had 2-file scaffold | ALWAYS commit + push after writing code. Added mandatory rules to CLAUDE.md DURING WORK and BEFORE CONTEXT CLEAR sections |
+| Used AlertDialog component in WhatsApp settings page | @/components/ui/alert-dialog doesn't exist in the project — build failed on Vercel | Use native confirm() like departments page does |
+| User tried to add phone number via Meta Dev Portal "Add Phone Number" | Shows "phone already registered" error — that's the old migration flow | Use Embedded Signup flow instead (CRM's "Connect WhatsApp" button) for coexistence mode |
 
 ### Open Questions (need human input)
-- No test user account exists in Supabase — user needs to create one or give permission to create via Supabase admin API
+- User needs to connect WhatsApp numbers via Embedded Signup — coexistence mode may require latest WhatsApp Business App version on phone
+- Webhook URL: `https://remotemunshi-crm-akshitgarg206s-projects.vercel.app/api/v1/webhooks/whatsapp`
+- Verify token: `remotemunshi_akshit206`
 
 ---
 
@@ -35,6 +43,11 @@
 
 <!-- Before context clear: copy Current Session to here, then write RESUME BRIEF above -->
 <!-- Keep last 3 sessions. Delete oldest when adding new. -->
+
+### Session: 2026-02-10
+**Work Done:** WhatsApp Business API integration (6 phases): migration 00026, Cloud API client, inbound processor, webhook endpoint, outbound sending, Settings page. Fixed build error (missing AlertDialog). Created attachments storage bucket. Env vars + webhook configured in Meta dashboard.
+**Key Learnings:** Project doesn't have alert-dialog UI component — use native confirm(). Coexistence mode uses Embedded Signup flow not Dev Portal "Add Phone Number". Hard refresh needed after failed→successful Vercel deployments (cached old broken build causes sidebar to show only Dashboard).
+**Handoff:** All code deployed. User needs to connect WhatsApp numbers via Embedded Signup.
 
 ### Session: 2026-02-07
 **Work Done:** Fixed Vercel 404 (force-pushed main→master), made login page static, set function region to Mumbai (bom1)
