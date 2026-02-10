@@ -97,7 +97,7 @@ export function ServiceView({ serviceId, month, year, status }: ServiceViewProps
     page,
     pageSize: 50,
     search: search || undefined,
-    status: status || undefined,
+    status: (status && status !== '__all__') ? status : undefined,
   }
 
   const { data, isLoading } = useComplianceMatrix(serviceId ? params : undefined)

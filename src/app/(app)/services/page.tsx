@@ -147,14 +147,14 @@ export default function ServicesPage() {
             <div className="space-y-2">
               <Label>Frequency</Label>
               <Select
-                value={newService.frequency}
-                onValueChange={(v) => setNewService({ ...newService, frequency: v, due_day_of_month: v ? newService.due_day_of_month : null })}
+                value={newService.frequency || '__none__'}
+                onValueChange={(v) => { const freq = v === '__none__' ? '' : v; setNewService({ ...newService, frequency: freq, due_day_of_month: freq ? newService.due_day_of_month : null }) }}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="None (no recurring deadlines)" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">None</SelectItem>
+                  <SelectItem value="__none__">None</SelectItem>
                   <SelectItem value="daily">Daily</SelectItem>
                   <SelectItem value="weekly">Weekly</SelectItem>
                   <SelectItem value="monthly">Monthly</SelectItem>

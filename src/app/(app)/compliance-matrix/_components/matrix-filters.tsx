@@ -42,7 +42,7 @@ const months = [
 ]
 
 const statusOptions = [
-  { value: '', label: 'All Statuses' },
+  { value: '__all__', label: 'All Statuses' },
   { value: 'data_pending', label: 'Data Pending' },
   { value: 'data_received', label: 'Data Received' },
   { value: 'in_progress', label: 'In Progress' },

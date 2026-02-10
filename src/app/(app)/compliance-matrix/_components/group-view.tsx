@@ -101,7 +101,7 @@ export function GroupView({ groupId, serviceId, month, year, status }: GroupView
     page,
     pageSize: 50,
     search: search || undefined,
-    status: status || undefined,
+    status: (status && status !== '__all__') ? status : undefined,
   }
 
   const { data, isLoading } = useComplianceMatrix(ready ? params : undefined)

@@ -27,7 +27,12 @@ function loadFilters(): SavedFilters {
   if (typeof window === 'undefined') return defaultFilters()
   try {
     const saved = localStorage.getItem(STORAGE_KEY)
-    if (saved) return JSON.parse(saved)
+    if (saved) {
+      const parsed = JSON.parse(saved)
+      // Migrate old empty-string status to __all__ sentinel
+      if (parsed.status === '') parsed.status = '__all__'
+      return parsed
+    }
   } catch { /* ignore */ }
   return defaultFilters()
 }
@@ -41,7 +46,7 @@ function defaultFilters(): SavedFilters {
     groupId: '',
     month: String(now.getMonth() + 1),
     year: String(now.getFullYear()),
-    status: '',
+    status: '__all__',
   }
 }
 

@@ -39,13 +39,13 @@ const columns: ColumnDef<Record<string, unknown>>[] = [
 export default function ComplianceTrackerPage() {
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
-  const [typeFilter, setTypeFilter] = useState<string>('')
-  const [statusFilter, setStatusFilter] = useState<string>('')
+  const [typeFilter, setTypeFilter] = useState<string>('__all__')
+  const [statusFilter, setStatusFilter] = useState<string>('__all__')
   const [importOpen, setImportOpen] = useState(false)
 
   const params: Record<string, string | number> = { page, pageSize: 20, search }
-  if (typeFilter) params.compliance_type = typeFilter
-  if (statusFilter) params.status = statusFilter
+  if (typeFilter && typeFilter !== '__all__') params.compliance_type = typeFilter
+  if (statusFilter && statusFilter !== '__all__') params.status = statusFilter
 
   const sp = new URLSearchParams()
   Object.entries(params).forEach(([k, v]) => sp.set(k, String(v)))
@@ -79,7 +79,7 @@ export default function ComplianceTrackerPage() {
         <Select value={typeFilter} onValueChange={setTypeFilter}>
           <SelectTrigger className="w-40"><SelectValue placeholder="All Types" /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All Types</SelectItem>
+            <SelectItem value="__all__">All Types</SelectItem>
             <SelectItem value="gst">GST</SelectItem>
             <SelectItem value="income_tax">Income Tax</SelectItem>
             <SelectItem value="mca">MCA</SelectItem>
@@ -89,7 +89,7 @@ export default function ComplianceTrackerPage() {
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="w-40"><SelectValue placeholder="All Statuses" /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All Statuses</SelectItem>
+            <SelectItem value="__all__">All Statuses</SelectItem>
             <SelectItem value="pending">Pending</SelectItem>
             <SelectItem value="in_progress">In Progress</SelectItem>
             <SelectItem value="filed">Filed</SelectItem>
