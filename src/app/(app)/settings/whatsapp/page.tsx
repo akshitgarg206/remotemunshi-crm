@@ -1,15 +1,16 @@
 'use client'
 
-import { useState, useCallback, useEffect, useRef } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
-import Script from 'next/script'
 import { toast } from 'sonner'
-import { ArrowLeft, Phone, Trash2, Star, Unplug, RefreshCw, Loader2 } from 'lucide-react'
+import { ArrowLeft, Phone, Trash2, Star, Unplug, RefreshCw, Loader2, Plus, ExternalLink } from 'lucide-react'
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import {
   Table,
   TableBody,
@@ -23,23 +24,8 @@ import {
   useCreateWhatsAppAccount,
   useUpdateWhatsAppAccount,
   useDeleteWhatsAppAccount,
-  useExchangeWhatsAppToken,
   type WhatsAppAccount,
 } from '@/hooks/queries/use-whatsapp-accounts'
-
-// Extend Window for Meta SDK
-declare global {
-  interface Window {
-    fbAsyncInit: () => void
-    FB: {
-      init: (params: Record<string, unknown>) => void
-      login: (
-        callback: (response: { authResponse?: { code?: string } }) => void,
-        params: Record<string, unknown>
-      ) => void
-    }
-  }
-}
 
 export default function WhatsAppSettingsPage() {
   const { data, isLoading } = useWhatsAppAccounts()
@@ -48,136 +34,45 @@ export default function WhatsAppSettingsPage() {
   const createAccount = useCreateWhatsAppAccount()
   const updateAccount = useUpdateWhatsAppAccount()
   const deleteAccount = useDeleteWhatsAppAccount()
-  const exchangeToken = useExchangeWhatsAppToken()
 
-  const [sdkReady, setSdkReady] = useState(false)
-  const [connecting, setConnecting] = useState(false)
+  const [showForm, setShowForm] = useState(false)
+  const [form, setForm] = useState({
+    phone_number_id: '',
+    waba_id: '',
+    access_token: '',
+    display_phone_number: '',
+    business_name: '',
+  })
 
-  const appId = process.env.NEXT_PUBLIC_META_APP_ID
-  const configId = process.env.NEXT_PUBLIC_META_CONFIG_ID
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
 
-  // Refs to coordinate the two async signals (FB.login callback + postMessage)
-  const signupCodeRef = useRef<string | null>(null)
-  const signupDataRef = useRef<{ phone_number_id: string; waba_id: string } | null>(null)
-  const signupProcessedRef = useRef(false)
-
-  // Initialize Meta SDK
-  useEffect(() => {
-    window.fbAsyncInit = () => {
-      window.FB.init({
-        appId,
-        cookie: true,
-        xfbml: true,
-        version: 'v21.0',
-      })
-      setSdkReady(true)
-    }
-  }, [appId])
-
-  // Try to complete signup when both pieces arrive
-  const tryCompleteSignup = useCallback(async () => {
-    const code = signupCodeRef.current
-    const data = signupDataRef.current
-    if (!code || !data || signupProcessedRef.current) return
-
-    signupProcessedRef.current = true
-    setConnecting(true)
-
-    try {
-      toast.info('Exchanging credentials...')
-
-      const result = await exchangeToken.mutateAsync({
-        code,
-        phone_number_id: data.phone_number_id,
-        waba_id: data.waba_id,
-      })
-
-      const tokenData = result.data as Record<string, string>
-
-      await createAccount.mutateAsync({
-        phone_number_id: tokenData.phone_number_id,
-        waba_id: tokenData.waba_id,
-        access_token: tokenData.access_token,
-        display_phone_number: tokenData.display_phone_number,
-        business_name: tokenData.business_name,
-      })
-
-      toast.success('WhatsApp number connected!')
-    } catch (err) {
-      console.error('Signup completion error:', err)
-      toast.error('Failed to complete WhatsApp setup')
-    } finally {
-      setConnecting(false)
-      signupCodeRef.current = null
-      signupDataRef.current = null
-      signupProcessedRef.current = false
-    }
-  }, [exchangeToken, createAccount])
-
-  // Listen for Embedded Signup message events (phone_number_id + waba_id)
-  useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
-      if (event.origin !== 'https://www.facebook.com' && event.origin !== 'https://web.facebook.com') return
-
-      try {
-        const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data
-        if (data.type !== 'WA_EMBEDDED_SIGNUP') return
-
-        const { phone_number_id, waba_id } = data.data || {}
-        if (!phone_number_id || !waba_id) return
-
-        signupDataRef.current = { phone_number_id, waba_id }
-        tryCompleteSignup()
-      } catch {
-        // Not a JSON message from Meta, ignore
-      }
-    }
-
-    window.addEventListener('message', handleMessage)
-    return () => window.removeEventListener('message', handleMessage)
-  }, [tryCompleteSignup])
-
-  // Handle Embedded Signup — FB.login callback (gets the auth code)
-  const handleConnectWhatsApp = useCallback(() => {
-    if (!window.FB) {
-      toast.error('Meta SDK not loaded yet. Please try again.')
-      return
-    }
-    if (!configId) {
-      toast.error('WhatsApp config_id not set. Add NEXT_PUBLIC_META_CONFIG_ID to env vars.')
+    if (!form.phone_number_id || !form.waba_id || !form.access_token || !form.display_phone_number) {
+      toast.error('Please fill in all required fields')
       return
     }
 
-    // Reset refs for fresh signup attempt
-    signupCodeRef.current = null
-    signupDataRef.current = null
-    signupProcessedRef.current = false
-    setConnecting(true)
-
-    window.FB.login(
-      (response) => {
-        const code = response.authResponse?.code
-        if (!code) {
-          toast.error('Connection cancelled or failed')
-          setConnecting(false)
-          return
-        }
-
-        signupCodeRef.current = code
-        tryCompleteSignup()
+    createAccount.mutate(
+      {
+        phone_number_id: form.phone_number_id.trim(),
+        waba_id: form.waba_id.trim(),
+        access_token: form.access_token.trim(),
+        display_phone_number: form.display_phone_number.trim(),
+        business_name: form.business_name.trim() || undefined,
       },
       {
-        config_id: configId,
-        response_type: 'code',
-        override_default_response_type: true,
-        extras: {
-          setup: {},
-          featureType: '',
-          sessionInfoVersion: '3',
+        onSuccess: () => {
+          toast.success('WhatsApp number connected!')
+          setShowForm(false)
+          setForm({ phone_number_id: '', waba_id: '', access_token: '', display_phone_number: '', business_name: '' })
+        },
+        onError: (err) => {
+          const msg = (err as Error).message || 'Failed to save account'
+          toast.error(msg.includes('DUPLICATE') ? 'This phone number is already connected' : msg)
         },
       }
     )
-  }, [configId, tryCompleteSignup])
+  }
 
   const handleSetDefault = (id: string) => {
     updateAccount.mutate(
@@ -219,15 +114,6 @@ export default function WhatsAppSettingsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Meta SDK */}
-      <Script
-        src="https://connect.facebook.net/en_US/sdk.js"
-        strategy="lazyOnload"
-        async
-        defer
-        crossOrigin="anonymous"
-      />
-
       {/* Header */}
       <div className="flex items-center gap-4">
         <Link href="/settings">
@@ -239,31 +125,96 @@ export default function WhatsAppSettingsPage() {
           <h1 className="text-2xl font-bold tracking-tight">WhatsApp Business</h1>
           <p className="text-muted-foreground text-sm">Connect and manage WhatsApp Business numbers</p>
         </div>
-        <Button onClick={handleConnectWhatsApp} disabled={connecting || !appId || !configId}>
-          {connecting ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Connecting...
-            </>
-          ) : (
-            <>
-              <Phone className="mr-2 h-4 w-4" />
-              Connect WhatsApp
-            </>
-          )}
-        </Button>
+        {!showForm && (
+          <Button onClick={() => setShowForm(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Add Number
+          </Button>
+        )}
       </div>
 
-      {(!appId || !configId) && (
-        <Card className="border-amber-500/50 bg-amber-500/5">
-          <CardContent className="p-4">
-            <p className="text-sm text-amber-600 dark:text-amber-400">
-              <strong>Setup required:</strong> Set these env vars:
-              {!appId && <><br />- <code>NEXT_PUBLIC_META_APP_ID</code> (Meta App ID)</>}
-              {!configId && <><br />- <code>NEXT_PUBLIC_META_CONFIG_ID</code> (Embedded Signup config ID from Meta Business Suite)</>}
-              <br />- <code>META_APP_SECRET</code> (server-side)
-              <br />- <code>WHATSAPP_WEBHOOK_VERIFY_TOKEN</code> (server-side)
-            </p>
+      {/* Add Number Form */}
+      {showForm && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Connect WhatsApp Number</CardTitle>
+            <CardDescription>
+              Enter credentials from your{' '}
+              <a
+                href="https://developers.facebook.com/apps/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary underline underline-offset-4 inline-flex items-center gap-1"
+              >
+                Meta App Dashboard <ExternalLink className="h-3 w-3" />
+              </a>
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="phone_number_id">Phone Number ID *</Label>
+                  <Input
+                    id="phone_number_id"
+                    placeholder="e.g. 123456789012345"
+                    value={form.phone_number_id}
+                    onChange={(e) => setForm((f) => ({ ...f, phone_number_id: e.target.value }))}
+                  />
+                  <p className="text-xs text-muted-foreground">WhatsApp &gt; API Setup &gt; Phone number ID</p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="waba_id">WABA ID *</Label>
+                  <Input
+                    id="waba_id"
+                    placeholder="e.g. 109876543210123"
+                    value={form.waba_id}
+                    onChange={(e) => setForm((f) => ({ ...f, waba_id: e.target.value }))}
+                  />
+                  <p className="text-xs text-muted-foreground">WhatsApp &gt; API Setup &gt; WhatsApp Business Account ID</p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="display_phone_number">Phone Number *</Label>
+                  <Input
+                    id="display_phone_number"
+                    placeholder="e.g. +91 98765 43210"
+                    value={form.display_phone_number}
+                    onChange={(e) => setForm((f) => ({ ...f, display_phone_number: e.target.value }))}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="business_name">Business Name</Label>
+                  <Input
+                    id="business_name"
+                    placeholder="e.g. Remote Munshi"
+                    value={form.business_name}
+                    onChange={(e) => setForm((f) => ({ ...f, business_name: e.target.value }))}
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="access_token">Permanent Access Token *</Label>
+                <Input
+                  id="access_token"
+                  type="password"
+                  placeholder="System user access token"
+                  value={form.access_token}
+                  onChange={(e) => setForm((f) => ({ ...f, access_token: e.target.value }))}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Business Settings &gt; System Users &gt; Generate Token (with whatsapp_business_messaging + whatsapp_business_management permissions)
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <Button type="submit" disabled={createAccount.isPending}>
+                  {createAccount.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Connect
+                </Button>
+                <Button type="button" variant="outline" onClick={() => setShowForm(false)}>
+                  Cancel
+                </Button>
+              </div>
+            </form>
           </CardContent>
         </Card>
       )}
@@ -290,7 +241,7 @@ export default function WhatsAppSettingsPage() {
               <Phone className="h-12 w-12 mx-auto mb-3 opacity-30" />
               <p>No WhatsApp numbers connected.</p>
               <p className="text-sm mt-1">
-                Click &ldquo;Connect WhatsApp&rdquo; to add your first number via Meta Embedded Signup.
+                Click &ldquo;Add Number&rdquo; to connect your WhatsApp Business number.
               </p>
             </div>
           ) : (
@@ -398,8 +349,6 @@ export default function WhatsAppSettingsPage() {
           </p>
         </CardContent>
       </Card>
-
     </div>
   )
 }
-
