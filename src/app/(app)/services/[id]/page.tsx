@@ -12,6 +12,11 @@ import {
   ChevronRight,
   Pencil,
   Trash2,
+  Users,
+  ListTodo,
+  Repeat,
+  Package,
+  ExternalLink,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -24,6 +29,8 @@ import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Switch } from '@/components/ui/switch'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
+import { EmptyState } from '@/components/empty-state'
 import { apiFetch } from '@/lib/api/fetch'
 import { toast } from 'sonner'
 
@@ -38,21 +45,21 @@ function DetailField({ label, value }: { label: string; value: React.ReactNode }
   )
 }
 
-function formatINR(amount: number | null | undefined): string {
-  if (amount == null) return '-'
-  return `₹${Number(amount).toLocaleString('en-IN')}`
-}
-
 function formatFrequency(freq: string | null | undefined): string {
   if (!freq) return '-'
   return freq.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
 }
 
+const statusColors: Record<string, string> = {
+  pending: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
+  in_progress: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+  in_review: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
+  completed: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+}
+
 interface EditForm {
   name: string
-  sac_code: string
   description: string
-  default_rate: string
   frequency: string
   due_day_of_month: string
   requires_data_collection: boolean
@@ -67,9 +74,8 @@ export default function ServiceDetailPage() {
   const [templatesOpen, setTemplatesOpen] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
   const [editForm, setEditForm] = useState<EditForm>({
-    name: '', sac_code: '', description: '', default_rate: '',
-    frequency: '', due_day_of_month: '', requires_data_collection: false,
-    data_description: '', is_active: true,
+    name: '', description: '', frequency: '', due_day_of_month: '',
+    requires_data_collection: false, data_description: '', is_active: true,
   })
 
   const { data: serviceRes, isLoading } = useQuery({
@@ -78,6 +84,15 @@ export default function ServiceDetailPage() {
     enabled: !!id,
   })
   const service = (serviceRes as any)?.data as Record<string, any> | undefined
+
+  const { data: assocRes, isLoading: assocLoading } = useQuery({
+    queryKey: ['services', id, 'associations'],
+    queryFn: () => apiFetch(`/api/v1/services/${id}/associations`),
+    enabled: !!id,
+  })
+  const assoc = (assocRes as any)?.data as {
+    clients: any[]; tasks: any[]; templates: any[]; bundles: any[]
+  } | undefined
 
   const updateMutation = useMutation({
     mutationFn: (data: Record<string, unknown>) =>
@@ -108,9 +123,7 @@ export default function ServiceDetailPage() {
     if (!service) return
     setEditForm({
       name: service.name || '',
-      sac_code: service.sac_code || '',
       description: service.description || '',
-      default_rate: service.default_rate != null ? String(service.default_rate) : '',
       frequency: service.frequency || '',
       due_day_of_month: service.due_day_of_month != null ? String(service.due_day_of_month) : '',
       requires_data_collection: service.requires_data_collection === true,
@@ -124,9 +137,7 @@ export default function ServiceDetailPage() {
     e.preventDefault()
     const payload: Record<string, unknown> = {
       name: editForm.name,
-      sac_code: editForm.sac_code || undefined,
       description: editForm.description || undefined,
-      default_rate: editForm.default_rate ? Number(editForm.default_rate) : 0,
       is_active: editForm.is_active,
     }
     if (editForm.frequency) {
@@ -181,6 +192,11 @@ export default function ServiceDetailPage() {
   const reminderDays = service.reminder_days as number[] | null
   const messageTemplates = service.message_templates as Record<string, string> | null
 
+  const clientCount = assoc?.clients?.length ?? 0
+  const taskCount = assoc?.tasks?.length ?? 0
+  const templateCount = assoc?.templates?.length ?? 0
+  const bundleCount = assoc?.bundles?.length ?? 0
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -194,7 +210,7 @@ export default function ServiceDetailPage() {
               <h1 className="text-2xl font-bold tracking-tight">{service.name}</h1>
               <Badge
                 variant="secondary"
-                className={isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}
+                className={isActive ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400'}
               >
                 {isActive ? 'Active' : 'Inactive'}
               </Badge>
@@ -223,8 +239,6 @@ export default function ServiceDetailPage() {
           <dl className="grid gap-x-6 gap-y-4 md:grid-cols-2 lg:grid-cols-3">
             <DetailField label="Name" value={service.name} />
             <DetailField label="Category" value={category?.name ? <Badge variant="secondary">{category.name}</Badge> : '-'} />
-            <DetailField label="SAC Code" value={service.sac_code} />
-            <DetailField label="Default Rate" value={formatINR(service.default_rate)} />
             <DetailField label="Description" value={service.description} />
           </dl>
         </CardContent>
@@ -257,7 +271,6 @@ export default function ServiceDetailPage() {
               <DetailField label="Data Description" value={service.data_description} />
             </dl>
 
-            {/* Message Templates */}
             {messageTemplates && Object.keys(messageTemplates).length > 0 && (
               <div className="mt-6">
                 <button
@@ -267,11 +280,7 @@ export default function ServiceDetailPage() {
                 >
                   <Bell className="h-4 w-4" />
                   Message Templates
-                  {templatesOpen ? (
-                    <ChevronDown className="h-4 w-4" />
-                  ) : (
-                    <ChevronRight className="h-4 w-4" />
-                  )}
+                  {templatesOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                 </button>
                 {templatesOpen && (
                   <div className="mt-3 space-y-3">
@@ -291,9 +300,152 @@ export default function ServiceDetailPage() {
         </Card>
       )}
 
+      {/* Associations Tabs */}
+      <Card>
+        <CardContent className="pt-6">
+          <Tabs defaultValue="clients">
+            <TabsList variant="line" className="w-full justify-start mb-4">
+              <TabsTrigger value="clients" className="gap-1.5">
+                <Users className="h-4 w-4" />
+                Clients
+                {clientCount > 0 && <Badge variant="secondary" className="ml-1 h-5 min-w-5 px-1.5 text-[10px]">{clientCount}</Badge>}
+              </TabsTrigger>
+              <TabsTrigger value="tasks" className="gap-1.5">
+                <ListTodo className="h-4 w-4" />
+                Tasks
+                {taskCount > 0 && <Badge variant="secondary" className="ml-1 h-5 min-w-5 px-1.5 text-[10px]">{taskCount}</Badge>}
+              </TabsTrigger>
+              <TabsTrigger value="templates" className="gap-1.5">
+                <Repeat className="h-4 w-4" />
+                Templates
+                {templateCount > 0 && <Badge variant="secondary" className="ml-1 h-5 min-w-5 px-1.5 text-[10px]">{templateCount}</Badge>}
+              </TabsTrigger>
+              <TabsTrigger value="bundles" className="gap-1.5">
+                <Package className="h-4 w-4" />
+                Bundles
+                {bundleCount > 0 && <Badge variant="secondary" className="ml-1 h-5 min-w-5 px-1.5 text-[10px]">{bundleCount}</Badge>}
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="clients">
+              {assocLoading ? (
+                <div className="space-y-2">{[1,2,3].map(i => <Skeleton key={i} className="h-10" />)}</div>
+              ) : clientCount === 0 ? (
+                <EmptyState variant="no-data" title="No clients" description="No clients are currently using this service." className="py-10" />
+              ) : (
+                <div className="divide-y rounded-md border">
+                  {assoc!.clients.map((client: any) => (
+                    <button
+                      key={client.id}
+                      onClick={() => router.push(`/client/${client.id}`)}
+                      className="flex w-full items-center justify-between px-4 py-3 text-left hover:bg-muted/50 transition-colors"
+                    >
+                      <div>
+                        <span className="font-medium text-sm">{client.name}</span>
+                        {client.code && <span className="ml-2 text-xs text-muted-foreground">{client.code}</span>}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="secondary" className={client.is_active !== false ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-gray-100 text-gray-500'}>
+                          {client.is_active !== false ? 'Active' : 'Inactive'}
+                        </Badge>
+                        <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="tasks">
+              {assocLoading ? (
+                <div className="space-y-2">{[1,2,3].map(i => <Skeleton key={i} className="h-10" />)}</div>
+              ) : taskCount === 0 ? (
+                <EmptyState variant="no-data" title="No tasks" description="No tasks are linked to this service." className="py-10" />
+              ) : (
+                <div className="divide-y rounded-md border">
+                  {assoc!.tasks.map((task: any) => (
+                    <button
+                      key={task.id}
+                      onClick={() => router.push(`/task/${task.id}`)}
+                      className="flex w-full items-center justify-between px-4 py-3 text-left hover:bg-muted/50 transition-colors"
+                    >
+                      <div className="min-w-0 flex-1 mr-3">
+                        <span className="font-medium text-sm truncate block">{task.title}</span>
+                        {task.clients?.name && <span className="text-xs text-muted-foreground">{task.clients.name}</span>}
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <Badge variant="secondary" className={statusColors[task.status] || ''}>
+                          {(task.status || '').replace(/_/g, ' ')}
+                        </Badge>
+                        <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="templates">
+              {assocLoading ? (
+                <div className="space-y-2">{[1,2,3].map(i => <Skeleton key={i} className="h-10" />)}</div>
+              ) : templateCount === 0 ? (
+                <EmptyState variant="no-data" title="No templates" description="No task templates are linked to this service." className="py-10" />
+              ) : (
+                <div className="divide-y rounded-md border">
+                  {assoc!.templates.map((tmpl: any) => (
+                    <button
+                      key={tmpl.id}
+                      onClick={() => router.push(`/task/templates/${tmpl.id}`)}
+                      className="flex w-full items-center justify-between px-4 py-3 text-left hover:bg-muted/50 transition-colors"
+                    >
+                      <div>
+                        <span className="font-medium text-sm">{tmpl.task_name}</span>
+                        {tmpl.frequency && <span className="ml-2 text-xs text-muted-foreground capitalize">{tmpl.frequency.replace(/_/g, ' ')}</span>}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="secondary" className={tmpl.is_active ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-gray-100 text-gray-500'}>
+                          {tmpl.is_active ? 'Active' : 'Inactive'}
+                        </Badge>
+                        <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="bundles">
+              {assocLoading ? (
+                <div className="space-y-2">{[1,2,3].map(i => <Skeleton key={i} className="h-10" />)}</div>
+              ) : bundleCount === 0 ? (
+                <EmptyState variant="no-data" title="No bundles" description="This service is not part of any bundles." className="py-10" />
+              ) : (
+                <div className="divide-y rounded-md border">
+                  {assoc!.bundles.map((bundle: any) => (
+                    <button
+                      key={bundle.id}
+                      onClick={() => router.push(`/bundles/${bundle.id}`)}
+                      className="flex w-full items-center justify-between px-4 py-3 text-left hover:bg-muted/50 transition-colors"
+                    >
+                      <span className="font-medium text-sm">{bundle.name}</span>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="secondary" className={bundle.is_active ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-gray-100 text-gray-500'}>
+                          {bundle.is_active ? 'Active' : 'Inactive'}
+                        </Badge>
+                        <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
+
       {/* Edit Dialog */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="sm:max-w-[520px]">
+        <DialogContent className="sm:max-w-[480px]">
           <DialogHeader>
             <DialogTitle>Edit Service</DialogTitle>
           </DialogHeader>
@@ -301,16 +453,6 @@ export default function ServiceDetailPage() {
             <div className="space-y-2">
               <Label>Service Name *</Label>
               <Input value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} required />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>SAC Code</Label>
-                <Input value={editForm.sac_code} onChange={(e) => setEditForm({ ...editForm, sac_code: e.target.value })} />
-              </div>
-              <div className="space-y-2">
-                <Label>Default Rate (₹)</Label>
-                <Input type="number" value={editForm.default_rate} onChange={(e) => setEditForm({ ...editForm, default_rate: e.target.value })} />
-              </div>
             </div>
             <div className="space-y-2">
               <Label>Description</Label>
