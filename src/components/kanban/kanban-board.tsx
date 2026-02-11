@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useRef } from 'react'
 import {
   DndContext,
   DragOverlay,
@@ -81,39 +81,46 @@ function Column({ id, label, color, tasks, activeTaskId, isOverColumn }: {
 export function KanbanBoard({ tasks, onStatusChange }: KanbanBoardProps) {
   const [activeTask, setActiveTask] = useState<TaskItem | null>(null)
   const [overColumnId, setOverColumnId] = useState<string | null>(null)
+  // Optimistic status overrides: taskId → newStatus (applied instantly, cleared when props update)
+  const [optimisticMoves, setOptimisticMoves] = useState<Record<string, string>>({})
+  const pendingMoves = useRef<Set<string>>(new Set())
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
   )
+
+  // Merge optimistic overrides into task list
+  const effectiveTasks = useMemo(() => {
+    if (Object.keys(optimisticMoves).length === 0) return tasks
+    return tasks.map(t => optimisticMoves[t.id] ? { ...t, status: optimisticMoves[t.id] } : t)
+  }, [tasks, optimisticMoves])
 
   const tasksByStatus = useMemo(() => {
     const grouped: Record<string, TaskItem[]> = {}
     for (const col of COLUMNS) grouped[col.id] = []
-    for (const task of tasks) {
+    for (const task of effectiveTasks) {
       if (grouped[task.status]) grouped[task.status].push(task)
     }
     return grouped
-  }, [tasks])
+  }, [effectiveTasks])
 
   const handleDragStart = useCallback((event: DragStartEvent) => {
-    const task = tasks.find(t => t.id === event.active.id)
+    const task = effectiveTasks.find(t => t.id === event.active.id)
     if (task) setActiveTask(task)
-  }, [tasks])
+  }, [effectiveTasks])
 
   const handleDragOver = useCallback((event: DragOverEvent) => {
     const { over } = event
     if (!over) { setOverColumnId(null); return }
 
-    // Check if hovering a column directly
     const colId = COLUMNS.find(c => c.id === over.id)?.id
     if (colId) { setOverColumnId(colId); return }
 
-    // Hovering over a card — find which column that card belongs to
-    const overTask = tasks.find(t => t.id === over.id)
+    const overTask = effectiveTasks.find(t => t.id === over.id)
     if (overTask) { setOverColumnId(overTask.status); return }
 
     setOverColumnId(null)
-  }, [tasks])
+  }, [effectiveTasks])
 
   const handleDragEnd = useCallback(async (event: DragEndEvent) => {
     const draggedTask = activeTask
@@ -129,7 +136,7 @@ export function KanbanBoard({ tasks, onStatusChange }: KanbanBoardProps) {
     if (directCol) {
       targetStatus = directCol.id
     } else {
-      const overTask = tasks.find(t => t.id === over.id)
+      const overTask = effectiveTasks.find(t => t.id === over.id)
       if (overTask) targetStatus = overTask.status
     }
 
@@ -145,13 +152,33 @@ export function KanbanBoard({ tasks, onStatusChange }: KanbanBoardProps) {
       }
     }
 
+    // Optimistic: move card instantly
+    const taskId = draggedTask.id
+    setOptimisticMoves(prev => ({ ...prev, [taskId]: targetStatus! }))
+    pendingMoves.current.add(taskId)
+
     try {
-      await onStatusChange(draggedTask.id, targetStatus)
+      await onStatusChange(taskId, targetStatus)
       toast.success(`Moved to ${COLUMNS.find(c => c.id === targetStatus)?.label}`)
     } catch {
       toast.error('Failed to update task status')
+      // Revert optimistic move
+      setOptimisticMoves(prev => {
+        const next = { ...prev }
+        delete next[taskId]
+        return next
+      })
+    } finally {
+      pendingMoves.current.delete(taskId)
+      // Clean up optimistic entry — props should now reflect the real status
+      setOptimisticMoves(prev => {
+        if (pendingMoves.current.has(taskId)) return prev
+        const next = { ...prev }
+        delete next[taskId]
+        return next
+      })
     }
-  }, [activeTask, tasks, onStatusChange])
+  }, [activeTask, effectiveTasks, onStatusChange])
 
   const handleDragCancel = useCallback(() => {
     setActiveTask(null)
@@ -181,7 +208,7 @@ export function KanbanBoard({ tasks, onStatusChange }: KanbanBoardProps) {
         ))}
       </div>
 
-      <DragOverlay dropAnimation={{ duration: 200, easing: 'ease' }}>
+      <DragOverlay dropAnimation={null}>
         {activeTask ? (
           <div className="w-[264px] rotate-[2deg] scale-105 shadow-xl">
             <KanbanCard task={activeTask} isOverlay />
