@@ -29,7 +29,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { useClient } from '@/hooks/queries/use-clients'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { useClient, useUpdateClient } from '@/hooks/queries/use-clients'
 import { apiFetch } from '@/lib/api/fetch'
 import { CommunicationTimeline } from '@/components/communications/communication-timeline'
 import { LogCommunicationDialog } from '@/components/communications/log-communication-dialog'
@@ -182,8 +189,56 @@ function DetailField({ label, value }: { label: string; value: React.ReactNode }
 export default function ClientDetailPage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
+  const queryClient = useQueryClient()
   const { data: clientRes, isLoading: clientLoading } = useClient(id)
   const client = clientRes?.data as Record<string, any> | undefined
+  const updateClient = useUpdateClient(id)
+
+  const [editOpen, setEditOpen] = useState(false)
+  const [editForm, setEditForm] = useState({
+    business_name: '', contact_name: '', email: '', mobile: '',
+    business_entity: '', status: 'active', gstin: '', pan: '', tan: '', cin: '',
+    address: '', city: '', state: '', pincode: '', notes: '',
+  })
+
+  function openEditDialog() {
+    if (!client) return
+    setEditForm({
+      business_name: client.business_name || '',
+      contact_name: client.contact_name || '',
+      email: client.email || '',
+      mobile: client.mobile || '',
+      business_entity: client.business_entity || '',
+      status: client.status || 'active',
+      gstin: client.gstin || '',
+      pan: client.pan || '',
+      tan: client.tan || '',
+      cin: client.cin || '',
+      address: client.address || '',
+      city: client.city || '',
+      state: client.state || '',
+      pincode: client.pincode || '',
+      notes: client.notes || '',
+    })
+    setEditOpen(true)
+  }
+
+  function handleEditSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    const payload: Record<string, unknown> = {}
+    Object.entries(editForm).forEach(([k, v]) => {
+      payload[k] = v || undefined
+    })
+    payload.status = editForm.status
+    updateClient.mutate(payload, {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ['clients', id] })
+        toast.success('Client updated')
+        setEditOpen(false)
+      },
+      onError: () => toast.error('Failed to update client'),
+    })
+  }
 
   // ---- Sub-queries for each tab ----
 
@@ -328,7 +383,7 @@ export default function ClientDetailPage() {
             </div>
           </div>
         </div>
-        <Button onClick={() => router.push(`/client/${id}/edit`)} className="shrink-0">
+        <Button onClick={openEditDialog} className="shrink-0">
           <Pencil className="mr-2 h-4 w-4" /> Edit Client
         </Button>
       </div>
@@ -947,6 +1002,107 @@ export default function ClientDetailPage() {
           />
         </TabsContent>
       </Tabs>
+
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent className="sm:max-w-[640px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Client</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleEditSubmit} className="space-y-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Business Name</Label>
+                <Input value={editForm.business_name} onChange={(e) => setEditForm({ ...editForm, business_name: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label>Contact Person</Label>
+                <Input value={editForm.contact_name} onChange={(e) => setEditForm({ ...editForm, contact_name: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label>Email</Label>
+                <Input type="email" value={editForm.email} onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label>Mobile</Label>
+                <Input value={editForm.mobile} onChange={(e) => setEditForm({ ...editForm, mobile: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label>Entity Type</Label>
+                <Select value={editForm.business_entity || '__none__'} onValueChange={(v) => setEditForm({ ...editForm, business_entity: v === '__none__' ? '' : v })}>
+                  <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">None</SelectItem>
+                    <SelectItem value="individual">Individual</SelectItem>
+                    <SelectItem value="proprietorship">Proprietorship</SelectItem>
+                    <SelectItem value="partnership">Partnership</SelectItem>
+                    <SelectItem value="llp">LLP</SelectItem>
+                    <SelectItem value="pvt_ltd">Pvt Ltd</SelectItem>
+                    <SelectItem value="ltd">Ltd</SelectItem>
+                    <SelectItem value="trust">Trust</SelectItem>
+                    <SelectItem value="society">Society</SelectItem>
+                    <SelectItem value="huf">HUF</SelectItem>
+                    <SelectItem value="aop">AOP</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Status</Label>
+                <Select value={editForm.status} onValueChange={(v) => setEditForm({ ...editForm, status: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="inactive">Inactive</SelectItem>
+                    <SelectItem value="on_hold">On Hold</SelectItem>
+                    <SelectItem value="closed">Closed</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>GSTIN</Label>
+                <Input value={editForm.gstin} onChange={(e) => setEditForm({ ...editForm, gstin: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label>PAN</Label>
+                <Input value={editForm.pan} onChange={(e) => setEditForm({ ...editForm, pan: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label>TAN</Label>
+                <Input value={editForm.tan} onChange={(e) => setEditForm({ ...editForm, tan: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label>CIN</Label>
+                <Input value={editForm.cin} onChange={(e) => setEditForm({ ...editForm, cin: e.target.value })} />
+              </div>
+              <div className="space-y-2 sm:col-span-2">
+                <Label>Address</Label>
+                <Input value={editForm.address} onChange={(e) => setEditForm({ ...editForm, address: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label>City</Label>
+                <Input value={editForm.city} onChange={(e) => setEditForm({ ...editForm, city: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label>State</Label>
+                <Input value={editForm.state} onChange={(e) => setEditForm({ ...editForm, state: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label>Pincode</Label>
+                <Input value={editForm.pincode} onChange={(e) => setEditForm({ ...editForm, pincode: e.target.value })} />
+              </div>
+              <div className="space-y-2 sm:col-span-2">
+                <Label>Notes</Label>
+                <Textarea value={editForm.notes} onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })} rows={3} />
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button type="button" variant="outline" onClick={() => setEditOpen(false)}>Cancel</Button>
+              <Button type="submit" disabled={updateClient.isPending}>
+                {updateClient.isPending ? 'Saving...' : 'Save Changes'}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

@@ -37,6 +37,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 
 // --- Constants ---
 
@@ -146,6 +152,40 @@ export default function TaskDetailPage() {
   const [reviewComment, setReviewComment] = useState('')
 
   const task = taskResponse?.data as TaskData | undefined
+
+  const [editOpen, setEditOpen] = useState(false)
+  const [editForm, setEditForm] = useState({
+    task_name: '', description: '', priority: 'medium', due_date: '', estimated_hours: '',
+  })
+
+  function openEditDialog() {
+    if (!task) return
+    setEditForm({
+      task_name: task.task_name || '',
+      description: (task as any).description || '',
+      priority: task.priority || 'medium',
+      due_date: task.due_date?.split('T')[0] || '',
+      estimated_hours: task.estimated_hours != null ? String(task.estimated_hours) : '',
+    })
+    setEditOpen(true)
+  }
+
+  function handleEditSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    updateTask.mutate({
+      task_name: editForm.task_name,
+      description: editForm.description || undefined,
+      priority: editForm.priority,
+      due_date: editForm.due_date || undefined,
+      estimated_hours: editForm.estimated_hours ? Number(editForm.estimated_hours) : undefined,
+    }, {
+      onSuccess: () => {
+        toast.success('Task updated')
+        setEditOpen(false)
+      },
+      onError: () => toast.error('Failed to update task'),
+    })
+  }
 
   // Current user's employee ID (from auth API)
   const { data: meData } = useQuery({
@@ -262,7 +302,7 @@ export default function TaskDetailPage() {
             </div>
           </div>
         </div>
-        <Button variant="outline" size="sm" className="shrink-0">
+        <Button variant="outline" size="sm" className="shrink-0" onClick={openEditDialog}>
           <Pencil className="mr-2 size-4" /> Edit
         </Button>
       </div>
@@ -430,6 +470,52 @@ export default function TaskDetailPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* Edit Dialog */}
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent className="sm:max-w-[520px]">
+          <DialogHeader>
+            <DialogTitle>Edit Task</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleEditSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Task Name *</label>
+              <Input value={editForm.task_name} onChange={(e) => setEditForm({ ...editForm, task_name: e.target.value })} required />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Description</label>
+              <Textarea value={editForm.description} onChange={(e) => setEditForm({ ...editForm, description: e.target.value })} rows={3} />
+            </div>
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Priority</label>
+                <Select value={editForm.priority} onValueChange={(v) => setEditForm({ ...editForm, priority: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {['low', 'medium', 'high', 'urgent'].map((p) => (
+                      <SelectItem key={p} value={p}>{formatLabel(p)}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Due Date</label>
+                <Input type="date" value={editForm.due_date} onChange={(e) => setEditForm({ ...editForm, due_date: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Est. Hours</label>
+                <Input type="number" step="0.5" min="0" value={editForm.estimated_hours} onChange={(e) => setEditForm({ ...editForm, estimated_hours: e.target.value })} />
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button type="button" variant="outline" onClick={() => setEditOpen(false)}>Cancel</Button>
+              <Button type="submit" disabled={updateTask.isPending}>
+                {updateTask.isPending ? 'Saving...' : 'Save Changes'}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* Sub-Tasks — only show for top-level tasks */}
       {!task.parent_task_id && (

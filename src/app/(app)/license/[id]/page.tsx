@@ -1,15 +1,21 @@
 'use client'
 
+import { useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { format, differenceInDays } from 'date-fns'
-import { ArrowLeft, FileText, Building2, Hash, Landmark, Calendar, Clock, ExternalLink, StickyNote, Paperclip } from 'lucide-react'
+import { toast } from 'sonner'
+import { ArrowLeft, FileText, Pencil, Building2, Hash, Landmark, Calendar, Clock, ExternalLink, StickyNote, Paperclip } from 'lucide-react'
 import { apiFetch } from '@/lib/api/fetch'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Separator } from '@/components/ui/separator'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 
 function InfoRow({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value: React.ReactNode }) {
   return (
@@ -63,12 +69,57 @@ function DetailSkeleton() {
 export default function LicenseDetailPage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
+  const queryClient = useQueryClient()
+  const [editOpen, setEditOpen] = useState(false)
+  const [editForm, setEditForm] = useState({ license_name: '', license_type: '', registration_no: '', issuing_authority: '', issued_date: '', expiry_date: '', url: '', notes: '' })
 
   const { data, isLoading } = useQuery({
     queryKey: ['licenses', id],
     queryFn: () => apiFetch(`/api/v1/licenses/${id}`),
     enabled: !!id,
   })
+
+  const updateMutation = useMutation({
+    mutationFn: (data: Record<string, unknown>) =>
+      apiFetch(`/api/v1/licenses/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['licenses', id] })
+      queryClient.invalidateQueries({ queryKey: ['licenses'] })
+      toast.success('License updated')
+      setEditOpen(false)
+    },
+    onError: () => toast.error('Failed to update license'),
+  })
+
+  function openEditDialog() {
+    const l = data?.data as Record<string, unknown>
+    if (!l) return
+    setEditForm({
+      license_name: (l.license_name as string) || '',
+      license_type: (l.license_type as string) || '',
+      registration_no: (l.registration_no as string) || '',
+      issuing_authority: (l.issuing_authority as string) || '',
+      issued_date: (l.issued_date as string)?.split('T')[0] || '',
+      expiry_date: (l.expiry_date as string)?.split('T')[0] || '',
+      url: (l.url as string) || '',
+      notes: (l.notes as string) || '',
+    })
+    setEditOpen(true)
+  }
+
+  function handleEditSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    updateMutation.mutate({
+      license_name: editForm.license_name,
+      license_type: editForm.license_type || undefined,
+      registration_no: editForm.registration_no || undefined,
+      issuing_authority: editForm.issuing_authority || undefined,
+      issued_date: editForm.issued_date || undefined,
+      expiry_date: editForm.expiry_date || undefined,
+      url: editForm.url || undefined,
+      notes: editForm.notes || undefined,
+    })
+  }
 
   if (isLoading) return <DetailSkeleton />
 
@@ -92,14 +143,19 @@ export default function LicenseDetailPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => router.push('/license')}>
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">{licenseName}</h1>
-          <p className="text-sm text-muted-foreground">{client?.business_name || 'License'}</p>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={() => router.push('/license')}>
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">{licenseName}</h1>
+            <p className="text-sm text-muted-foreground">{client?.business_name || 'License'}</p>
+          </div>
         </div>
+        <Button onClick={openEditDialog}>
+          <Pencil className="mr-2 h-4 w-4" /> Edit
+        </Button>
       </div>
 
       <Separator />
@@ -182,6 +238,56 @@ export default function LicenseDetailPage() {
           </Card>
         </div>
       </div>
+
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent className="sm:max-w-[560px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit License</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleEditSubmit} className="space-y-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label>License Name *</Label>
+                <Input value={editForm.license_name} onChange={(e) => setEditForm({ ...editForm, license_name: e.target.value })} required />
+              </div>
+              <div className="space-y-2">
+                <Label>Type</Label>
+                <Input value={editForm.license_type} onChange={(e) => setEditForm({ ...editForm, license_type: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label>Registration No.</Label>
+                <Input value={editForm.registration_no} onChange={(e) => setEditForm({ ...editForm, registration_no: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label>Issuing Authority</Label>
+                <Input value={editForm.issuing_authority} onChange={(e) => setEditForm({ ...editForm, issuing_authority: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label>Issued Date</Label>
+                <Input type="date" value={editForm.issued_date} onChange={(e) => setEditForm({ ...editForm, issued_date: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label>Expiry Date</Label>
+                <Input type="date" value={editForm.expiry_date} onChange={(e) => setEditForm({ ...editForm, expiry_date: e.target.value })} />
+              </div>
+              <div className="space-y-2 sm:col-span-2">
+                <Label>URL</Label>
+                <Input value={editForm.url} onChange={(e) => setEditForm({ ...editForm, url: e.target.value })} />
+              </div>
+              <div className="space-y-2 sm:col-span-2">
+                <Label>Notes</Label>
+                <Textarea value={editForm.notes} onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })} rows={2} />
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button type="button" variant="outline" onClick={() => setEditOpen(false)}>Cancel</Button>
+              <Button type="submit" disabled={updateMutation.isPending}>
+                {updateMutation.isPending ? 'Saving...' : 'Save Changes'}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

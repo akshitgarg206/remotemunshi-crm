@@ -1,15 +1,22 @@
 'use client'
 
+import { useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { format } from 'date-fns'
-import { ArrowLeft, FileWarning, Building2, Calendar, Scale, BookOpen, MessageSquare, ExternalLink, Paperclip } from 'lucide-react'
+import { toast } from 'sonner'
+import { ArrowLeft, FileWarning, Pencil, Building2, Calendar, Scale, BookOpen, MessageSquare, ExternalLink, Paperclip } from 'lucide-react'
 import { apiFetch } from '@/lib/api/fetch'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Separator } from '@/components/ui/separator'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 const statusColors: Record<string, string> = {
   open: 'bg-yellow-100 text-yellow-700 border-yellow-200',
@@ -53,12 +60,57 @@ function DetailSkeleton() {
 export default function NoticeDetailPage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
+  const queryClient = useQueryClient()
+  const [editOpen, setEditOpen] = useState(false)
+  const [editForm, setEditForm] = useState({ notice_type: '', section: '', assessment_year: '', received_date: '', due_date: '', hearing_date: '', status: 'open', remarks: '' })
 
   const { data, isLoading } = useQuery({
     queryKey: ['notices', id],
     queryFn: () => apiFetch(`/api/v1/notices/${id}`),
     enabled: !!id,
   })
+
+  const updateMutation = useMutation({
+    mutationFn: (data: Record<string, unknown>) =>
+      apiFetch(`/api/v1/notices/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notices', id] })
+      queryClient.invalidateQueries({ queryKey: ['notices'] })
+      toast.success('Notice updated')
+      setEditOpen(false)
+    },
+    onError: () => toast.error('Failed to update notice'),
+  })
+
+  function openEditDialog() {
+    const n = data?.data as Record<string, unknown>
+    if (!n) return
+    setEditForm({
+      notice_type: (n.notice_type as string) || '',
+      section: (n.section as string) || '',
+      assessment_year: (n.assessment_year as string) || '',
+      received_date: (n.received_date as string)?.split('T')[0] || '',
+      due_date: (n.due_date as string)?.split('T')[0] || '',
+      hearing_date: (n.hearing_date as string)?.split('T')[0] || '',
+      status: (n.status as string) || 'open',
+      remarks: (n.remarks as string) || '',
+    })
+    setEditOpen(true)
+  }
+
+  function handleEditSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    updateMutation.mutate({
+      notice_type: editForm.notice_type || undefined,
+      section: editForm.section || undefined,
+      assessment_year: editForm.assessment_year || undefined,
+      received_date: editForm.received_date || undefined,
+      due_date: editForm.due_date || undefined,
+      hearing_date: editForm.hearing_date || undefined,
+      status: editForm.status,
+      remarks: editForm.remarks || undefined,
+    })
+  }
 
   if (isLoading) return <DetailSkeleton />
 
@@ -95,6 +147,9 @@ export default function NoticeDetailPage() {
             {status?.replace(/_/g, ' ')}
           </Badge>
         </div>
+        <Button onClick={openEditDialog}>
+          <Pencil className="mr-2 h-4 w-4" /> Edit
+        </Button>
       </div>
 
       <Separator />
@@ -184,6 +239,64 @@ export default function NoticeDetailPage() {
           </Card>
         </div>
       </div>
+
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent className="sm:max-w-[560px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Notice</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleEditSubmit} className="space-y-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Notice Type</Label>
+                <Input value={editForm.notice_type} onChange={(e) => setEditForm({ ...editForm, notice_type: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label>Section</Label>
+                <Input value={editForm.section} onChange={(e) => setEditForm({ ...editForm, section: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label>Assessment Year</Label>
+                <Input value={editForm.assessment_year} onChange={(e) => setEditForm({ ...editForm, assessment_year: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label>Status</Label>
+                <Select value={editForm.status} onValueChange={(v) => setEditForm({ ...editForm, status: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="open">Open</SelectItem>
+                    <SelectItem value="in_progress">In Progress</SelectItem>
+                    <SelectItem value="resolved">Resolved</SelectItem>
+                    <SelectItem value="closed">Closed</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Received Date</Label>
+                <Input type="date" value={editForm.received_date} onChange={(e) => setEditForm({ ...editForm, received_date: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label>Due Date</Label>
+                <Input type="date" value={editForm.due_date} onChange={(e) => setEditForm({ ...editForm, due_date: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label>Hearing Date</Label>
+                <Input type="date" value={editForm.hearing_date} onChange={(e) => setEditForm({ ...editForm, hearing_date: e.target.value })} />
+              </div>
+              <div className="space-y-2 sm:col-span-2">
+                <Label>Remarks</Label>
+                <Textarea value={editForm.remarks} onChange={(e) => setEditForm({ ...editForm, remarks: e.target.value })} rows={2} />
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button type="button" variant="outline" onClick={() => setEditOpen(false)}>Cancel</Button>
+              <Button type="submit" disabled={updateMutation.isPending}>
+                {updateMutation.isPending ? 'Saving...' : 'Save Changes'}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

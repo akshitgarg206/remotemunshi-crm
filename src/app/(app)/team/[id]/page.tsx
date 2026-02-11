@@ -1,15 +1,21 @@
 'use client'
 
+import { useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { format } from 'date-fns'
 import { ArrowLeft, Pencil, User, Mail, Phone, Briefcase, Building2, Calendar, IndianRupee, ClipboardList, CheckCircle2, Clock } from 'lucide-react'
+import { toast } from 'sonner'
 import { apiFetch } from '@/lib/api/fetch'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Separator } from '@/components/ui/separator'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 const statusColors: Record<string, string> = {
   active: 'bg-green-100 text-green-700 border-green-200',
@@ -80,12 +86,66 @@ function formatINR(amount: number | null | undefined): string {
 export default function TeamDetailPage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
+  const queryClient = useQueryClient()
+  const [editOpen, setEditOpen] = useState(false)
+  const [editForm, setEditForm] = useState({ name: '', email: '', mobile: '', role_id: '', designation_id: '', department_id: '', status: '', join_date: '', salary: '' })
 
   const { data, isLoading } = useQuery({
     queryKey: ['team', id],
     queryFn: () => apiFetch(`/api/v1/team/${id}`),
     enabled: !!id,
   })
+
+  const { data: rolesData } = useQuery({ queryKey: ['settings', 'roles'], queryFn: () => apiFetch('/api/v1/settings/roles') })
+  const { data: deptsData } = useQuery({ queryKey: ['settings', 'departments'], queryFn: () => apiFetch('/api/v1/settings/departments') })
+  const { data: desigsData } = useQuery({ queryKey: ['settings', 'designations'], queryFn: () => apiFetch('/api/v1/settings/designations') })
+  const roles = (rolesData?.data ?? []) as { id: string; name: string }[]
+  const departments = (deptsData?.data ?? []) as { id: string; name: string }[]
+  const designations = (desigsData?.data ?? []) as { id: string; name: string }[]
+
+  const updateMutation = useMutation({
+    mutationFn: (data: Record<string, unknown>) =>
+      apiFetch(`/api/v1/team/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['team', id] })
+      queryClient.invalidateQueries({ queryKey: ['team'] })
+      toast.success('Team member updated')
+      setEditOpen(false)
+    },
+    onError: () => toast.error('Failed to update team member'),
+  })
+
+  function openEditDialog() {
+    const m = data?.data as Record<string, unknown>
+    if (!m) return
+    setEditForm({
+      name: (m.name as string) || '',
+      email: (m.email as string) || '',
+      mobile: (m.mobile as string) || '',
+      role_id: (m.role_id as string) || '',
+      designation_id: (m.designation_id as string) || '',
+      department_id: (m.department_id as string) || '',
+      status: (m.status as string) || 'active',
+      join_date: (m.join_date as string)?.split('T')[0] || '',
+      salary: m.salary != null ? String(m.salary) : '',
+    })
+    setEditOpen(true)
+  }
+
+  function handleEditSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    updateMutation.mutate({
+      name: editForm.name,
+      email: editForm.email,
+      mobile: editForm.mobile || undefined,
+      role_id: editForm.role_id || undefined,
+      designation_id: editForm.designation_id || undefined,
+      department_id: editForm.department_id || undefined,
+      status: editForm.status,
+      join_date: editForm.join_date || undefined,
+      salary: editForm.salary ? Number(editForm.salary) : undefined,
+    })
+  }
 
   if (isLoading) return <DetailSkeleton />
 
@@ -123,7 +183,7 @@ export default function TeamDetailPage() {
             {status?.replace(/_/g, ' ')}
           </Badge>
         </div>
-        <Button onClick={() => router.push(`/team/${id}/edit`)}>
+        <Button onClick={openEditDialog}>
           <Pencil className="mr-2 h-4 w-4" /> Edit
         </Button>
       </div>
@@ -190,6 +250,83 @@ export default function TeamDetailPage() {
           />
         </div>
       </div>
+
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent className="sm:max-w-[560px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Team Member</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleEditSubmit} className="space-y-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2 sm:col-span-2">
+                <Label>Name *</Label>
+                <Input value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} required />
+              </div>
+              <div className="space-y-2">
+                <Label>Email *</Label>
+                <Input type="email" value={editForm.email} onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} required />
+              </div>
+              <div className="space-y-2">
+                <Label>Mobile</Label>
+                <Input value={editForm.mobile} onChange={(e) => setEditForm({ ...editForm, mobile: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label>Role</Label>
+                <Select value={editForm.role_id} onValueChange={(v) => setEditForm({ ...editForm, role_id: v })}>
+                  <SelectTrigger><SelectValue placeholder="Select role" /></SelectTrigger>
+                  <SelectContent>
+                    {roles.map((r) => <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Department</Label>
+                <Select value={editForm.department_id} onValueChange={(v) => setEditForm({ ...editForm, department_id: v })}>
+                  <SelectTrigger><SelectValue placeholder="Select department" /></SelectTrigger>
+                  <SelectContent>
+                    {departments.map((d) => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Designation</Label>
+                <Select value={editForm.designation_id} onValueChange={(v) => setEditForm({ ...editForm, designation_id: v })}>
+                  <SelectTrigger><SelectValue placeholder="Select designation" /></SelectTrigger>
+                  <SelectContent>
+                    {designations.map((d) => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Status</Label>
+                <Select value={editForm.status} onValueChange={(v) => setEditForm({ ...editForm, status: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="inactive">Inactive</SelectItem>
+                    <SelectItem value="on_leave">On Leave</SelectItem>
+                    <SelectItem value="terminated">Terminated</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Join Date</Label>
+                <Input type="date" value={editForm.join_date} onChange={(e) => setEditForm({ ...editForm, join_date: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label>Salary</Label>
+                <Input type="number" value={editForm.salary} onChange={(e) => setEditForm({ ...editForm, salary: e.target.value })} />
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button type="button" variant="outline" onClick={() => setEditOpen(false)}>Cancel</Button>
+              <Button type="submit" disabled={updateMutation.isPending}>
+                {updateMutation.isPending ? 'Saving...' : 'Save Changes'}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

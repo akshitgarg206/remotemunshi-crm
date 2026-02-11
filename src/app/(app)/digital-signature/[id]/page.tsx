@@ -1,15 +1,22 @@
 'use client'
 
+import { useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { format, differenceInDays } from 'date-fns'
-import { ArrowLeft, ShieldCheck, User, Building2, MapPin, Hash, Store, Calendar, Clock } from 'lucide-react'
+import { toast } from 'sonner'
+import { ArrowLeft, ShieldCheck, Pencil, User, Building2, MapPin, Hash, Store, Calendar, Clock } from 'lucide-react'
 import { apiFetch } from '@/lib/api/fetch'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Separator } from '@/components/ui/separator'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 const statusColors: Record<string, string> = {
   active: 'bg-green-100 text-green-700 border-green-200',
@@ -76,12 +83,61 @@ function DetailSkeleton() {
 export default function DscDetailPage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
+  const queryClient = useQueryClient()
+  const [editOpen, setEditOpen] = useState(false)
+  const [editForm, setEditForm] = useState({ holder_name: '', class: 'class_2', pan: '', issued_date: '', expiry_date: '', location: 'with_firm', status: 'active', remarks: '', bin_number: '', vendor: '' })
 
   const { data, isLoading } = useQuery({
     queryKey: ['dscs', id],
     queryFn: () => apiFetch(`/api/v1/dscs/${id}`),
     enabled: !!id,
   })
+
+  const updateMutation = useMutation({
+    mutationFn: (data: Record<string, unknown>) =>
+      apiFetch(`/api/v1/dscs/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['dscs', id] })
+      queryClient.invalidateQueries({ queryKey: ['dscs'] })
+      toast.success('DSC updated')
+      setEditOpen(false)
+    },
+    onError: () => toast.error('Failed to update DSC'),
+  })
+
+  function openEditDialog() {
+    const d = data?.data as Record<string, unknown>
+    if (!d) return
+    setEditForm({
+      holder_name: (d.holder_name as string) || '',
+      class: (d.class as string) || 'class_2',
+      pan: (d.pan as string) || '',
+      issued_date: (d.issued_date as string)?.split('T')[0] || '',
+      expiry_date: (d.expiry_date as string)?.split('T')[0] || '',
+      location: (d.location as string) || 'with_firm',
+      status: (d.status as string) || 'active',
+      remarks: (d.remarks as string) || '',
+      bin_number: (d.bin_number as string) || '',
+      vendor: (d.vendor as string) || '',
+    })
+    setEditOpen(true)
+  }
+
+  function handleEditSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    updateMutation.mutate({
+      holder_name: editForm.holder_name,
+      class: editForm.class,
+      pan: editForm.pan || undefined,
+      issued_date: editForm.issued_date || undefined,
+      expiry_date: editForm.expiry_date || undefined,
+      location: editForm.location,
+      status: editForm.status,
+      remarks: editForm.remarks || undefined,
+      bin_number: editForm.bin_number || undefined,
+      vendor: editForm.vendor || undefined,
+    })
+  }
 
   if (isLoading) return <DetailSkeleton />
 
@@ -123,6 +179,9 @@ export default function DscDetailPage() {
             {status}
           </Badge>
         </div>
+        <Button onClick={openEditDialog}>
+          <Pencil className="mr-2 h-4 w-4" /> Edit
+        </Button>
       </div>
 
       <Separator />
@@ -187,6 +246,85 @@ export default function DscDetailPage() {
           </CardContent>
         </Card>
       </div>
+
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent className="sm:max-w-[560px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit DSC</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleEditSubmit} className="space-y-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Holder Name *</Label>
+                <Input value={editForm.holder_name} onChange={(e) => setEditForm({ ...editForm, holder_name: e.target.value })} required />
+              </div>
+              <div className="space-y-2">
+                <Label>Class</Label>
+                <Select value={editForm.class} onValueChange={(v) => setEditForm({ ...editForm, class: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="class_2">Class 2</SelectItem>
+                    <SelectItem value="class_3">Class 3</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>PAN</Label>
+                <Input value={editForm.pan} onChange={(e) => setEditForm({ ...editForm, pan: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label>Location</Label>
+                <Select value={editForm.location} onValueChange={(v) => setEditForm({ ...editForm, location: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="with_firm">With Firm</SelectItem>
+                    <SelectItem value="with_client">With Client</SelectItem>
+                    <SelectItem value="with_vendor">With Vendor</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Issued Date</Label>
+                <Input type="date" value={editForm.issued_date} onChange={(e) => setEditForm({ ...editForm, issued_date: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label>Expiry Date</Label>
+                <Input type="date" value={editForm.expiry_date} onChange={(e) => setEditForm({ ...editForm, expiry_date: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label>BIN Number</Label>
+                <Input value={editForm.bin_number} onChange={(e) => setEditForm({ ...editForm, bin_number: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label>Vendor</Label>
+                <Input value={editForm.vendor} onChange={(e) => setEditForm({ ...editForm, vendor: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label>Status</Label>
+                <Select value={editForm.status} onValueChange={(v) => setEditForm({ ...editForm, status: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="expired">Expired</SelectItem>
+                    <SelectItem value="revoked">Revoked</SelectItem>
+                    <SelectItem value="pending">Pending</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2 sm:col-span-2">
+                <Label>Remarks</Label>
+                <Textarea value={editForm.remarks} onChange={(e) => setEditForm({ ...editForm, remarks: e.target.value })} rows={2} />
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button type="button" variant="outline" onClick={() => setEditOpen(false)}>Cancel</Button>
+              <Button type="submit" disabled={updateMutation.isPending}>
+                {updateMutation.isPending ? 'Saving...' : 'Save Changes'}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

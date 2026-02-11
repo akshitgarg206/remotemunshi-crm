@@ -1,8 +1,10 @@
 'use client'
 
+import { useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { format } from 'date-fns'
+import { toast } from 'sonner'
 import {
   ArrowLeft,
   Pencil,
@@ -15,6 +17,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { Switch } from '@/components/ui/switch'
 import {
   Table,
   TableBody,
@@ -58,6 +65,42 @@ function EmptyState({ message }: { message: string }) {
 export default function BundleDetailPage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
+  const queryClient = useQueryClient()
+  const [editOpen, setEditOpen] = useState(false)
+  const [editForm, setEditForm] = useState({ name: '', description: '', bundle_price: '', is_active: true })
+
+  const updateMutation = useMutation({
+    mutationFn: (data: Record<string, unknown>) =>
+      apiFetch(`/api/v1/bundles/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bundles', id] })
+      queryClient.invalidateQueries({ queryKey: ['bundles'] })
+      toast.success('Bundle updated')
+      setEditOpen(false)
+    },
+    onError: () => toast.error('Failed to update bundle'),
+  })
+
+  function openEditDialog() {
+    if (!bundle) return
+    setEditForm({
+      name: bundle.name || '',
+      description: bundle.description || '',
+      bundle_price: bundle.bundle_price != null ? String(bundle.bundle_price) : '',
+      is_active: bundle.is_active !== false,
+    })
+    setEditOpen(true)
+  }
+
+  function handleEditSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    updateMutation.mutate({
+      name: editForm.name,
+      description: editForm.description || undefined,
+      bundle_price: editForm.bundle_price ? Number(editForm.bundle_price) : undefined,
+      is_active: editForm.is_active,
+    })
+  }
 
   const { data: bundleRes, isLoading: bundleLoading } = useQuery({
     queryKey: ['bundles', id],
@@ -139,7 +182,7 @@ export default function BundleDetailPage() {
             </p>
           </div>
         </div>
-        <Button onClick={() => router.push(`/bundles/${id}/edit`)}>
+        <Button onClick={openEditDialog}>
           <Pencil className="mr-2 h-4 w-4" /> Edit Bundle
         </Button>
       </div>
@@ -262,6 +305,38 @@ export default function BundleDetailPage() {
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent className="sm:max-w-[480px]">
+          <DialogHeader>
+            <DialogTitle>Edit Bundle</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleEditSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label>Name *</Label>
+              <Input value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} required />
+            </div>
+            <div className="space-y-2">
+              <Label>Description</Label>
+              <Textarea value={editForm.description} onChange={(e) => setEditForm({ ...editForm, description: e.target.value })} rows={3} />
+            </div>
+            <div className="space-y-2">
+              <Label>Price</Label>
+              <Input type="number" value={editForm.bundle_price} onChange={(e) => setEditForm({ ...editForm, bundle_price: e.target.value })} />
+            </div>
+            <div className="flex items-center gap-3">
+              <Switch checked={editForm.is_active} onCheckedChange={(v) => setEditForm({ ...editForm, is_active: v })} />
+              <Label>Active</Label>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button type="button" variant="outline" onClick={() => setEditOpen(false)}>Cancel</Button>
+              <Button type="submit" disabled={updateMutation.isPending}>
+                {updateMutation.isPending ? 'Saving...' : 'Save Changes'}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
