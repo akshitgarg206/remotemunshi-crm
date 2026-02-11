@@ -1,80 +1,67 @@
-# Protocol System
+# Skills System
 
-**Purpose:** 2-level protocol structure for efficient context loading and accumulated learning
+Skills use Claude Code's native skill format for on-demand loading and auto-invocation.
 
----
+## How It Works
 
-## Protocol Structure
+1. **Descriptions loaded at session start** (~30-50 tokens each) — Claude knows what's available
+2. **Full SKILL.md loaded on invocation** — when Claude determines it's relevant, or when you type `/skill-name`
+3. **reference.md loaded on demand** — only when SKILL.md patterns are insufficient
 
-### Level 1: Instructions (Loaded on Trigger)
-- **File:** `guide.md`
-- **Size:** ~2-3k tokens per protocol
-- **Contains:** Syntax reference, core patterns, common pitfalls, quick fixes
-- **Loaded:** When protocol trigger words detected (triggers defined in CLAUDE.md)
-
-### Level 2: Resources (Loaded as Needed)
-- **File:** `reference.md`
-- **Size:** Unlimited
-- **Contains:** Detailed examples, error catalogs, complete schemas
-- **Loaded:** When guide.md patterns are insufficient
-
----
-
-## How Protocols Work
-
-When user request matches trigger words in CLAUDE.md:
-1. Load relevant protocol `guide.md`
-2. Use patterns from guide
-3. Load `reference.md` only if detailed examples needed
+## Skill Structure
 
 ```
-User request → match triggers in CLAUDE.md → load guide.md → use patterns →
-load reference.md only if guide insufficient
+.claude/skills/skill-name/
+  SKILL.md         # Required: YAML frontmatter + instructions (keep under ~3k tokens)
+  reference.md     # Optional: detailed examples, error catalogs, schemas
 ```
 
+### SKILL.md Format
+
+```yaml
+---
+name: skill-name
+description: When to use this skill. Include keywords for auto-detection.
+# user-invocable: true            # Can user invoke with /skill-name?
+# disable-model-invocation: true  # Prevent Claude from auto-invoking?
+# allowed-tools: Read, Grep       # Restrict tools available to skill
+# context: fork                   # Run in isolated subagent context
+# agent: Explore                  # Subagent type (with context: fork)
+# argument-hint: [args]           # Shown in autocomplete
 ---
 
-## Creating New Protocols
+# Skill content (markdown)
+```
 
-**When:** 3+ patterns discovered for a domain with no existing protocol
+### Variables Available in SKILL.md
 
-**Steps:**
+```
+$ARGUMENTS          # All args passed to /skill-name
+$ARGUMENTS[0], $0   # First argument
+$ARGUMENTS[1], $1   # Second argument
+${CLAUDE_SESSION_ID} # Current session ID
+!`command`           # Shell output injected before Claude sees it
+```
+
+## Creating New Skills
+
+**When:** 3+ patterns discovered for a domain with no existing skill.
+
 1. Copy `_template/` → `.claude/skills/new-name/`
-2. Fill in `guide.md` with patterns discovered
-3. Add trigger row to Protocol Triggers table in CLAUDE.md
-
-**Structure:**
-```
-.claude/skills/protocol-name/
-  guide.md       (syntax, patterns, pitfalls, fixes)
-  reference.md   (detailed examples, catalogs)
-```
-
----
+2. Edit `SKILL.md`: set `name`, `description`, fill patterns
+3. Learning Loop (in CLAUDE.md) will accumulate patterns over time
 
 ## Learning Loop Integration
 
-As you work, the Learning Loop (defined in CLAUDE.md) updates guide.md files:
+As you work, update skill SKILL.md files:
 
-| What happened | guide.md section |
+| What happened | SKILL.md section |
 |--------------|-----------------|
 | Correct syntax found | **Syntax Reference** |
 | Working logic pattern | **Core Patterns** |
 | Something that didn't work | **Common Pitfalls** |
 | Error + solution | **Quick Fixes** |
 
-**Update rules:**
-- Be concise — add only the essential pattern/fix
-- Be preventive — teach how to avoid errors, not just fix them
-- Update immediately — don't batch, don't wait
-
----
-
-## Maintenance
-
-1. **Load guide when needed** — don't load all protocols at once
-2. **Load reference rarely** — only for deep dives
-3. **Protocols grow automatically** — Learning Loop adds to them during normal work
-4. **No protocol for a domain?** — Create one after discovering 3+ patterns
+**Size management:** When SKILL.md exceeds ~3k tokens, move older patterns to `reference.md`.
 
 ---

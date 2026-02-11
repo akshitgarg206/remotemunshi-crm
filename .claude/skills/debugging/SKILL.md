@@ -1,17 +1,11 @@
-# Debugging - Guide
-
-**Purpose:** Systematic approach to finding and fixing errors in any project
-
+---
+name: debugging
+description: Systematic error resolution. Use when encountering bugs, errors, failures, or broken behavior. Checkpoint-based methodology: reproduce, isolate, identify root cause, fix, verify, prevent.
 ---
 
-## Syntax Reference
+# Debugging
 
-<!-- LEARNING LOOP TARGET: Add correct syntax patterns as you discover them -->
-| Context | Correct Syntax |
-|---------|---------------|
-| | |
-
----
+Systematic approach to finding and fixing errors.
 
 ## Methodology: Checkpoint-Based Debugging
 
@@ -32,7 +26,7 @@
 
 ### Step 4: Fix
 - Make the minimal change that fixes the issue
-- Don't refactor while debugging - fix the bug only
+- Don't refactor while debugging — fix the bug only
 - Verify the fix addresses the root cause, not just the symptom
 
 ### Step 5: Verify
@@ -41,9 +35,18 @@
 - Document what was wrong and why
 
 ### Step 6: Prevent
-- Update the relevant protocol with the pattern to PREVENT this error
+- Update this skill's SKILL.md with the pattern (Learning Loop)
 - Log in `memory/test_results.md` with fix details
-- Add to error catalog in `reference.md` if it's a new error type
+- Add to error catalog in [reference.md](reference.md) if new error type
+
+---
+
+## Syntax Reference
+
+<!-- LEARNING LOOP TARGET: Add correct syntax patterns as you discover them -->
+| Context | Correct Syntax |
+|---------|---------------|
+| | |
 
 ---
 
@@ -56,7 +59,7 @@
 | Shotgun debugging | Change 5 things at once | Change 1 thing, verify, repeat |
 | Missing context | Jump to code immediately | Read error message fully first |
 | No verification | "It should work now" | Run the test that was failing |
-| No documentation | Fix and move on | Log the fix and update protocols |
+| No documentation | Fix and move on | Log the fix and update skills |
 
 ---
 
@@ -66,12 +69,13 @@
 | Error/Problem | Fix |
 |--------------|-----|
 | "Not found" errors | Check paths, IDs, and spelling |
-| "Undefined" errors | Check data flow - is the value being passed? |
+| "Undefined" errors | Check data flow — is the value being passed? |
 | "Permission" errors | Check credentials and access configuration |
 | "Timeout" errors | Check if the service is running and reachable |
 | "Type" errors | Check input types vs expected types |
 | "Syntax" errors | Check for missing brackets, quotes, semicolons |
 | Intermittent failures | Check race conditions, timing, external dependencies |
+| Select.Item empty value crash | Radix Select.Item value="" crashes. Use sentinel like `__all__` or `__none__`, convert back in handler |
 
 ---
 
@@ -85,7 +89,7 @@
 - [ ] Original failing scenario passes
 - [ ] No regressions introduced
 - [ ] Fix documented in test_results.md
-- [ ] Protocol updated to prevent recurrence
+- [ ] Skill updated to prevent recurrence
 
 ---
 
@@ -103,8 +107,6 @@ If the same fix attempt fails 3 times:
 
 ## Cross-References
 
-- **Testing protocol:** `.claude/skills/testing/guide.md`
-- **Error catalog:** `.claude/skills/debugging/reference.md`
+- **Testing skill:** `.claude/skills/testing/SKILL.md`
+- **Error catalog:** [reference.md](reference.md)
 - **Test results log:** `memory/test_results.md`
-
----

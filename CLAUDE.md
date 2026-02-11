@@ -8,20 +8,21 @@
 [] 3. Read memory/test_results.md → if STATUS is TESTING or resume brief mentions tests
 [] 4. Read memory/module_flows.md → module interlinkages, DB FKs, API routes, UI flows
 [] 5. Read .claude/reference/task_management.md → task format + context clear rules
-[] 6. Scan user request → match triggers below → load matching guide.md files
-[] 7. Update bigger_picture.md top block (ACTIVE GOAL / STATUS / NEXT STEP)
-[] 8. TaskCreate (format in task_management.md) → mark in_progress → WORK
+[] 6. Update bigger_picture.md top block (ACTIVE GOAL / STATUS / NEXT STEP)
+[] 7. TaskCreate (format in task_management.md) → mark in_progress → WORK
 ```
 
 **Output this checklist with marks before ANY work.**
+
+> Skills (debugging, testing, context-clear) auto-load when relevant — no manual trigger scanning needed.
 
 ## DURING WORK
 
 ```
 → Hit error/learned syntax/found pattern?
-  → Update the relevant protocol guide.md IMMEDIATELY (see Learning Loop below)
+  → Update the relevant skill's SKILL.md IMMEDIATELY (see Learning Loop below)
 → Need subtask?
-  → Loop to step 5 (scan triggers, load protocol, create subtask)
+  → Create subtask with full context
 → Testing?
   → Test → Pass? → Complete | Fail? → Fix → Re-test | Stuck 3x? → Ask user
 → Long task (multi-step)?
@@ -38,7 +39,7 @@
 
 ## BEFORE CONTEXT CLEAR
 
-**Follow the context clear protocol in `.claude/reference/task_management.md`. Do this FIRST if user says "clear context" or context is running low.**
+**Use `/context-clear` or follow the context clear protocol in `.claude/reference/task_management.md`.**
 
 ### MANDATORY pre-clear git check
 ```
@@ -47,15 +48,14 @@
 3. Cross-check bigger_picture.md "What's Done" against actual committed files
 4. If bigger_picture.md claims work exists but files don't → FLAG to user immediately
 ```
-**WHY:** Previous sessions wrote code but never committed. Context cleared → all code lost. Memory files claimed features existed but the repo only had the initial scaffold. This MUST NOT happen again.
+**WHY:** Previous sessions wrote code but never committed. Context cleared → all code lost. This MUST NOT happen again.
 
 ## Communication Rules
 
 - **Be concise.** No preamble ("Let me...", "I'll now..."). Straight to action or answer.
-- **Don't narrate tool usage.** Don't say "Let me read the file" - just read it.
+- **Don't narrate tool usage.** Don't say "Let me read the file" — just read it.
 - **Don't explain what you're about to do** unless the user asks for a plan.
 - **Report results, not process.** Say what changed, not every step you took.
-- **Protocol loading is silent.** Never tell the user you're loading protocols.
 
 ---
 
@@ -77,21 +77,12 @@
 
 <!-- CUSTOMIZE: Add your project's non-negotiable rules -->
 1. **Check protection status** before modifying protected resources
-2. **Testing** - Verify changes work before marking complete
+2. **Testing** — Verify changes work before marking complete
 3. **[Add project-specific rules]**
 
-## Protocol Triggers (single source of truth)
+## Learning Loop (update skills AS YOU WORK)
 
-<!-- CUSTOMIZE: Add your protocols. This is the ONLY trigger table - no duplicates elsewhere. -->
-| Trigger | Protocol | Path |
-|---------|----------|------|
-| debug, error, failed, broken | debugging | `.claude/skills/debugging/guide.md` |
-| test, verify, validate, check | testing | `.claude/skills/testing/guide.md` |
-| <!-- trigger words --> | <!-- name --> | `.claude/skills/{name}/guide.md` |
-
-## Learning Loop (update protocols AS YOU WORK)
-
-When you encounter any of these, update the relevant protocol's `guide.md` **immediately**:
+When you discover patterns, update the relevant skill's `SKILL.md` **immediately**:
 
 | What happened | Add to section | Example |
 |--------------|----------------|---------|
@@ -101,14 +92,14 @@ When you encounter any of these, update the relevant protocol's `guide.md` **imm
 | Error + its fix | **Quick Fixes** | "column not found" → check if column name is a reserved word |
 | Approach that failed | **Common Pitfalls** | Don't retry the same API call on 400 errors — fix the payload |
 
-**Rule:** If you fixed something or learned something, the protocol must be updated before the task is marked complete. Future sessions benefit only if you write it down.
+**Rule:** If you fixed something or learned something, the skill must be updated before the task is marked complete. Future sessions benefit only if you write it down.
 
-**Size management:** When a guide.md exceeds ~3k tokens, move older/less-common patterns to `reference.md` and keep only the most-used patterns in guide.md.
+**Size management:** When a SKILL.md exceeds ~3k tokens, move older/less-common patterns to `reference.md` and keep only the most-used patterns in SKILL.md.
 
-**No matching protocol?** If you've hit 3+ patterns for a domain with no protocol, create one:
+**No matching skill?** If you've hit 3+ patterns for a domain with no skill, create one:
 1. Copy `_template/` → `.claude/skills/new-name/`
-2. Fill in guide.md with patterns discovered so far
-3. Add trigger row to the Protocol Triggers table above
+2. Rename the template SKILL.md, fill with patterns discovered so far
+3. Set `name` and `description` in YAML frontmatter
 
 ## Quick References
 
