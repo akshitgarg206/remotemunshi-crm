@@ -49,9 +49,10 @@ export const CSV_TEMPLATES: Record<string, CsvTemplate> = {
     table: 'services',
     columns: [
       { header: 'Name', field: 'name', required: true, type: 'string', example: 'GST Registration' },
-      { header: 'SAC Code', field: 'sac_code', required: false, type: 'string', example: '998231' },
       { header: 'Description', field: 'description', required: false, type: 'string', example: 'New GST registration' },
-      { header: 'Default Rate', field: 'default_rate', required: false, type: 'number', example: '5000' },
+      { header: 'Frequency', field: 'frequency', required: false, type: 'string', example: 'monthly', enum: ['daily', 'weekly', 'monthly', 'quarterly', 'half_yearly', 'yearly'] },
+      { header: 'Due Day of Month', field: 'due_day_of_month', required: false, type: 'number', example: '15' },
+      { header: 'Target Days Before Due', field: 'target_days_before_due', required: false, type: 'number', example: '7' },
     ],
   },
   tasks: {
@@ -59,8 +60,11 @@ export const CSV_TEMPLATES: Record<string, CsvTemplate> = {
     table: 'tasks',
     columns: [
       { header: 'Task Name', field: 'task_name', required: true, type: 'string', example: 'File GSTR-3B' },
+      { header: 'Client Name', field: 'client_id', required: false, type: 'string', example: 'Acme Corp', lookup: 'client_id' },
       { header: 'Priority', field: 'priority', required: false, type: 'string', example: 'medium', enum: ['low', 'medium', 'high', 'urgent'] },
       { header: 'Status', field: 'status', required: false, type: 'string', example: 'pending', enum: ['pending', 'in_progress', 'in_review', 'request_changes', 'completed', 'on_hold', 'cancelled'] },
+      { header: 'Start Date', field: 'start_date', required: false, type: 'date', example: '2025-03-01' },
+      { header: 'Target Date', field: 'target_date', required: false, type: 'date', example: '2025-03-25' },
       { header: 'Due Date', field: 'due_date', required: false, type: 'date', example: '2025-03-31' },
       { header: 'Estimated Hours', field: 'estimated_hours', required: false, type: 'number', example: '2' },
     ],

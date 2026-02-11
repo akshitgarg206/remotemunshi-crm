@@ -62,6 +62,7 @@ interface EditForm {
   description: string
   frequency: string
   due_day_of_month: string
+  target_days_before_due: string
   requires_data_collection: boolean
   data_description: string
   is_active: boolean
@@ -74,7 +75,7 @@ export default function ServiceDetailPage() {
   const [templatesOpen, setTemplatesOpen] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
   const [editForm, setEditForm] = useState<EditForm>({
-    name: '', description: '', frequency: '', due_day_of_month: '',
+    name: '', description: '', frequency: '', due_day_of_month: '', target_days_before_due: '',
     requires_data_collection: false, data_description: '', is_active: true,
   })
 
@@ -126,6 +127,7 @@ export default function ServiceDetailPage() {
       description: service.description || '',
       frequency: service.frequency || '',
       due_day_of_month: service.due_day_of_month != null ? String(service.due_day_of_month) : '',
+      target_days_before_due: service.target_days_before_due != null ? String(service.target_days_before_due) : '',
       requires_data_collection: service.requires_data_collection === true,
       data_description: service.data_description || '',
       is_active: service.is_active !== false,
@@ -143,6 +145,8 @@ export default function ServiceDetailPage() {
     if (editForm.frequency) {
       payload.frequency = editForm.frequency
       if (editForm.due_day_of_month) payload.due_day_of_month = Number(editForm.due_day_of_month)
+      if (editForm.target_days_before_due) payload.target_days_before_due = Number(editForm.target_days_before_due)
+      else payload.target_days_before_due = undefined
       payload.requires_data_collection = editForm.requires_data_collection
       if (editForm.requires_data_collection && editForm.data_description) {
         payload.data_description = editForm.data_description
@@ -150,6 +154,7 @@ export default function ServiceDetailPage() {
     } else {
       payload.frequency = undefined
       payload.due_day_of_month = undefined
+      payload.target_days_before_due = undefined
       payload.requires_data_collection = false
       payload.data_description = undefined
     }
@@ -259,6 +264,10 @@ export default function ServiceDetailPage() {
               <DetailField
                 label="Due Day of Month"
                 value={service.due_day_of_month ? `${service.due_day_of_month}${getOrdinalSuffix(service.due_day_of_month)}` : '-'}
+              />
+              <DetailField
+                label="Target Days Before Due"
+                value={service.target_days_before_due ? `${service.target_days_before_due} days` : '-'}
               />
               <DetailField
                 label="Reminder Days"
@@ -480,14 +489,26 @@ export default function ServiceDetailPage() {
               </Select>
             </div>
             {editForm.frequency && (
-              <div className="space-y-2">
-                <Label>Due Day of Month (1-31)</Label>
-                <Input
-                  type="number" min={1} max={31}
-                  value={editForm.due_day_of_month}
-                  onChange={(e) => setEditForm({ ...editForm, due_day_of_month: e.target.value })}
-                  placeholder="e.g. 15"
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Due Day of Month (1-31)</Label>
+                  <Input
+                    type="number" min={1} max={31}
+                    value={editForm.due_day_of_month}
+                    onChange={(e) => setEditForm({ ...editForm, due_day_of_month: e.target.value })}
+                    placeholder="e.g. 15"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Target Days Before Due</Label>
+                  <Input
+                    type="number" min={1} max={365}
+                    value={editForm.target_days_before_due}
+                    onChange={(e) => setEditForm({ ...editForm, target_days_before_due: e.target.value })}
+                    placeholder="e.g. 7"
+                  />
+                  <p className="text-xs text-muted-foreground">Auto-sets task target date this many days before due</p>
+                </div>
               </div>
             )}
             {editForm.frequency && (

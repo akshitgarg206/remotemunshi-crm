@@ -13,6 +13,7 @@ export const createServiceSchema = z.object({
   data_description: z.string().optional(),
   initial_message_template: z.string().optional(),
   reminder_message_template: z.string().optional(),
+  target_days_before_due: z.number().min(1).max(365).optional(),
 })
 
 export const updateServiceSchema = createServiceSchema.partial().extend({
