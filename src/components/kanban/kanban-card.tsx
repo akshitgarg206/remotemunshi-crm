@@ -1,7 +1,6 @@
 'use client'
 
-import { useSortable } from '@dnd-kit/sortable'
-import { CSS } from '@dnd-kit/utilities'
+import { useDraggable } from '@dnd-kit/core'
 import { useRouter } from 'next/navigation'
 import { Badge } from '@/components/ui/badge'
 
@@ -26,43 +25,44 @@ interface KanbanCardProps {
     reviewer_2_id?: string | null
     current_review_level?: number
   }
+  isDragSource?: boolean
+  isOverlay?: boolean
 }
 
-export function KanbanCard({ task }: KanbanCardProps) {
+export function KanbanCard({ task, isDragSource, isOverlay }: KanbanCardProps) {
   const router = useRouter()
   const {
     attributes,
     listeners,
     setNodeRef,
-    transform,
-    transition,
     isDragging,
-  } = useSortable({ id: task.id, data: { task } })
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-  }
+  } = useDraggable({ id: task.id })
 
   const isOverdue = task.due_date && new Date(task.due_date) < new Date() && task.status !== 'completed'
   const assignees = task.task_assignees || []
   const hasReview = !!(task.reviewer_1_id)
   const reviewLevel = task.current_review_level
 
-  // Checklist progress
   const checklist = task.task_checklist_items || []
   const checklistTotal = checklist.length
   const checklistDone = checklist.filter(item => item.is_checked).length
   const checklistPercent = checklistTotal > 0 ? Math.round((checklistDone / checklistTotal) * 100) : 0
 
+  // Hide original card while dragging (DragOverlay shows the ghost)
+  if (isDragSource && !isOverlay) {
+    return (
+      <div ref={setNodeRef} className="rounded-lg border border-dashed border-primary/30 bg-primary/5 p-3 h-[80px]" />
+    )
+  }
+
   return (
     <div
-      ref={setNodeRef}
-      style={style}
-      {...attributes}
-      {...listeners}
-      className="rounded-lg border bg-card text-card-foreground p-3 shadow-sm cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow space-y-2"
+      ref={isOverlay ? undefined : setNodeRef}
+      {...(isOverlay ? {} : attributes)}
+      {...(isOverlay ? {} : listeners)}
+      className={`rounded-lg border bg-card text-card-foreground p-3 shadow-sm space-y-2 touch-none ${
+        isOverlay ? 'cursor-grabbing' : isDragging ? 'opacity-50' : 'cursor-grab active:cursor-grabbing hover:shadow-md'
+      } transition-shadow`}
     >
       {/* Priority bar */}
       <div className={`h-0.5 w-8 rounded-full ${priorityDots[task.priority] || 'bg-gray-400'}`} />
@@ -70,7 +70,8 @@ export function KanbanCard({ task }: KanbanCardProps) {
       {/* Task name — clickable */}
       <p
         className="text-sm font-medium leading-tight cursor-pointer hover:text-primary transition-colors"
-        onClick={(e) => { e.stopPropagation(); router.push(`/task/${task.id}`) }}
+        onPointerDown={(e) => e.stopPropagation()}
+        onClick={() => router.push(`/task/${task.id}`)}
       >
         {task.task_name}
       </p>
@@ -95,20 +96,17 @@ export function KanbanCard({ task }: KanbanCardProps) {
         </div>
       )}
 
-      {/* Bottom row: priority dot, due date, review badge, avatars */}
+      {/* Bottom row */}
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          {/* Priority dot */}
           <span className={`inline-block size-2 rounded-full ${priorityDots[task.priority] || 'bg-gray-400'}`}
             title={task.priority}
           />
-          {/* Due date */}
           {task.due_date && (
             <span className={`text-[11px] ${isOverdue ? 'text-red-600 dark:text-red-400 font-medium' : 'text-muted-foreground'}`}>
               {new Date(task.due_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
             </span>
           )}
-          {/* Review badge */}
           {hasReview && reviewLevel && task.status === 'in_review' && (
             <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-purple-500/10 text-purple-700 dark:text-purple-400">
               L{reviewLevel}
@@ -116,7 +114,6 @@ export function KanbanCard({ task }: KanbanCardProps) {
           )}
         </div>
 
-        {/* Assignee avatars */}
         {assignees.length > 0 && (
           <div className="flex -space-x-1.5">
             {assignees.slice(0, 3).map((a) => (
