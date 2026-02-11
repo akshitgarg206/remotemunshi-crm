@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useCallback, useRef } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import {
   DndContext,
   DragOverlay,
@@ -81,9 +81,25 @@ function Column({ id, label, color, tasks, activeTaskId, isOverColumn }: {
 export function KanbanBoard({ tasks, onStatusChange }: KanbanBoardProps) {
   const [activeTask, setActiveTask] = useState<TaskItem | null>(null)
   const [overColumnId, setOverColumnId] = useState<string | null>(null)
-  // Optimistic status overrides: taskId → newStatus (applied instantly, cleared when props update)
+  // Optimistic status overrides: taskId → newStatus (cleared when props catch up)
   const [optimisticMoves, setOptimisticMoves] = useState<Record<string, string>>({})
-  const pendingMoves = useRef<Set<string>>(new Set())
+
+  // Clean up optimistic overrides once the actual props reflect the new status
+  useEffect(() => {
+    if (Object.keys(optimisticMoves).length === 0) return
+    const stale: string[] = []
+    for (const [taskId, optimisticStatus] of Object.entries(optimisticMoves)) {
+      const task = tasks.find(t => t.id === taskId)
+      if (!task || task.status === optimisticStatus) stale.push(taskId)
+    }
+    if (stale.length > 0) {
+      setOptimisticMoves(prev => {
+        const next = { ...prev }
+        for (const id of stale) delete next[id]
+        return Object.keys(next).length === Object.keys(prev).length ? prev : next
+      })
+    }
+  }, [tasks, optimisticMoves])
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
@@ -167,7 +183,6 @@ export function KanbanBoard({ tasks, onStatusChange }: KanbanBoardProps) {
     setOptimisticMoves(prev => ({ ...prev, [taskId]: targetStatus! }))
     setActiveTask(null)
     setOverColumnId(null)
-    pendingMoves.current.add(taskId)
 
     try {
       await onStatusChange(taskId, targetStatus)
@@ -180,16 +195,8 @@ export function KanbanBoard({ tasks, onStatusChange }: KanbanBoardProps) {
         delete next[taskId]
         return next
       })
-    } finally {
-      pendingMoves.current.delete(taskId)
-      // Clean up optimistic entry — props should now reflect the real status
-      setOptimisticMoves(prev => {
-        if (pendingMoves.current.has(taskId)) return prev
-        const next = { ...prev }
-        delete next[taskId]
-        return next
-      })
     }
+    // Cleanup happens via useEffect when props catch up — no premature removal
   }, [activeTask, effectiveTasks, onStatusChange])
 
   const handleDragCancel = useCallback(() => {
