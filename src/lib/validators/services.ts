@@ -15,7 +15,9 @@ export const createServiceSchema = z.object({
   reminder_message_template: z.string().optional(),
 })
 
-export const updateServiceSchema = createServiceSchema.partial()
+export const updateServiceSchema = createServiceSchema.partial().extend({
+  is_active: z.boolean().optional(),
+})
 
 export type CreateServiceInput = z.infer<typeof createServiceSchema>
 export type UpdateServiceInput = z.infer<typeof updateServiceSchema>
