@@ -124,11 +124,14 @@ export function KanbanBoard({ tasks, onStatusChange }: KanbanBoardProps) {
 
   const handleDragEnd = useCallback(async (event: DragEndEvent) => {
     const draggedTask = activeTask
-    setActiveTask(null)
-    setOverColumnId(null)
-
     const { over } = event
-    if (!over || !draggedTask) return
+
+    // No valid drop — clear drag state only
+    if (!over || !draggedTask) {
+      setActiveTask(null)
+      setOverColumnId(null)
+      return
+    }
 
     // Resolve target column
     let targetStatus: string | undefined
@@ -140,7 +143,12 @@ export function KanbanBoard({ tasks, onStatusChange }: KanbanBoardProps) {
       if (overTask) targetStatus = overTask.status
     }
 
-    if (!targetStatus || targetStatus === draggedTask.status) return
+    // Same column or invalid — clear drag state only
+    if (!targetStatus || targetStatus === draggedTask.status) {
+      setActiveTask(null)
+      setOverColumnId(null)
+      return
+    }
 
     // Review guard
     if (targetStatus === 'completed' && draggedTask.reviewer_1_id) {
@@ -148,13 +156,17 @@ export function KanbanBoard({ tasks, onStatusChange }: KanbanBoardProps) {
       const r2Done = !draggedTask.reviewer_2_id || draggedTask.review_2_status === 'approved'
       if (!r1Done || !r2Done) {
         toast.error('Cannot complete — reviews not approved yet')
+        setActiveTask(null)
+        setOverColumnId(null)
         return
       }
     }
 
-    // Optimistic: move card instantly
+    // Optimistic move + clear drag state in ONE batch — no intermediate render
     const taskId = draggedTask.id
     setOptimisticMoves(prev => ({ ...prev, [taskId]: targetStatus! }))
+    setActiveTask(null)
+    setOverColumnId(null)
     pendingMoves.current.add(taskId)
 
     try {
