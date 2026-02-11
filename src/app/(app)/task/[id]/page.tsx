@@ -114,6 +114,7 @@ interface ChecklistItem {
   is_checked: boolean
   estimated_minutes: number | null
   actual_minutes: number | null
+  owner_type: 'team' | 'client'
 }
 
 interface TimeEntry {
@@ -148,6 +149,8 @@ interface TaskData {
   task_name: string
   status: string
   priority: string
+  start_date: string | null
+  target_date: string | null
   due_date: string | null
   estimated_hours: number | null
   created_at: string
@@ -184,7 +187,7 @@ export default function TaskDetailPage() {
 
   const [editOpen, setEditOpen] = useState(false)
   const [editForm, setEditForm] = useState({
-    task_name: '', description: '', priority: 'medium', due_date: '', estH: '', estM: '',
+    task_name: '', description: '', priority: 'medium', start_date: '', target_date: '', due_date: '', estH: '', estM: '',
   })
 
   function openEditDialog() {
@@ -194,6 +197,8 @@ export default function TaskDetailPage() {
       task_name: task.task_name || '',
       description: (task as any).description || '',
       priority: task.priority || 'medium',
+      start_date: task.start_date?.split('T')[0] || '',
+      target_date: task.target_date?.split('T')[0] || '',
       due_date: task.due_date?.split('T')[0] || '',
       estH: h > 0 ? String(h) : '',
       estM: m > 0 ? String(m) : '',
@@ -210,6 +215,8 @@ export default function TaskDetailPage() {
       task_name: editForm.task_name,
       description: editForm.description || undefined,
       priority: editForm.priority,
+      start_date: editForm.start_date || undefined,
+      target_date: editForm.target_date || undefined,
       due_date: editForm.due_date || undefined,
       estimated_hours: totalDecimalHours > 0 ? Math.round(totalDecimalHours * 100) / 100 : undefined,
     }, {
@@ -328,8 +335,13 @@ export default function TaskDetailPage() {
                   {task.services.name}
                 </Badge>
               )}
+              {task.target_date && (
+                <span className={`text-xs ${new Date(task.target_date) < new Date() && task.status !== 'completed' ? 'text-amber-600 dark:text-amber-400 font-medium' : 'text-muted-foreground'}`}>
+                  Target {format(new Date(task.target_date), 'MMM d')}
+                </span>
+              )}
               {task.due_date && (
-                <span className={`text-xs ${new Date(task.due_date) < new Date() ? 'text-red-600 dark:text-red-400 font-medium' : 'text-muted-foreground'}`}>
+                <span className={`text-xs ${new Date(task.due_date) < new Date() && task.status !== 'completed' ? 'text-red-600 dark:text-red-400 font-medium' : 'text-muted-foreground'}`}>
                   Due {format(new Date(task.due_date), 'MMM d, yyyy')}
                 </span>
               )}
@@ -378,9 +390,29 @@ export default function TaskDetailPage() {
               </Badge>
             </div>
             <div>
+              <p className="text-sm text-muted-foreground">Start Date</p>
+              <p className="font-medium">
+                {task.start_date ? format(new Date(task.start_date), 'dd MMM yyyy') : '-'}
+              </p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Target Date</p>
+              <p className="font-medium">
+                {task.target_date ? (
+                  <span className={new Date(task.target_date) < new Date() && task.status !== 'completed' ? 'text-amber-600 dark:text-amber-400' : ''}>
+                    {format(new Date(task.target_date), 'dd MMM yyyy')}
+                  </span>
+                ) : '-'}
+              </p>
+            </div>
+            <div>
               <p className="text-sm text-muted-foreground">Due Date</p>
               <p className="font-medium">
-                {task.due_date ? format(new Date(task.due_date), 'dd MMM yyyy') : '-'}
+                {task.due_date ? (
+                  <span className={new Date(task.due_date) < new Date() && task.status !== 'completed' ? 'text-red-600 dark:text-red-400 font-semibold' : ''}>
+                    {format(new Date(task.due_date), 'dd MMM yyyy')}
+                  </span>
+                ) : '-'}
               </p>
             </div>
             <div>
@@ -520,7 +552,7 @@ export default function TaskDetailPage() {
               <label className="text-sm font-medium">Description</label>
               <Textarea value={editForm.description} onChange={(e) => setEditForm({ ...editForm, description: e.target.value })} rows={3} />
             </div>
-            <div className="grid gap-4 sm:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <label className="text-sm font-medium">Priority</label>
                 <Select value={editForm.priority} onValueChange={(v) => setEditForm({ ...editForm, priority: v })}>
@@ -533,10 +565,6 @@ export default function TaskDetailPage() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">Due Date</label>
-                <Input type="date" value={editForm.due_date} onChange={(e) => setEditForm({ ...editForm, due_date: e.target.value })} />
-              </div>
-              <div className="space-y-2">
                 <label className="text-sm font-medium">Est. Time</label>
                 <div className="flex items-center gap-1">
                   <Input type="number" min="0" max="999" placeholder="0" value={editForm.estH} onChange={(e) => setEditForm({ ...editForm, estH: e.target.value })} className="w-14" />
@@ -544,6 +572,20 @@ export default function TaskDetailPage() {
                   <Input type="number" min="0" max="59" step="5" placeholder="0" value={editForm.estM} onChange={(e) => setEditForm({ ...editForm, estM: e.target.value })} className="w-14" />
                   <span className="text-xs text-muted-foreground">m</span>
                 </div>
+              </div>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Start Date</label>
+                <Input type="date" value={editForm.start_date} onChange={(e) => setEditForm({ ...editForm, start_date: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Target Date</label>
+                <Input type="date" value={editForm.target_date} onChange={(e) => setEditForm({ ...editForm, target_date: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Due Date</label>
+                <Input type="date" value={editForm.due_date} onChange={(e) => setEditForm({ ...editForm, due_date: e.target.value })} />
               </div>
             </div>
             <div className="flex justify-end gap-2 pt-2">
@@ -796,6 +838,15 @@ function ChecklistSection({ taskId }: { taskId: string }) {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['tasks', taskId, 'checklist'] }),
   })
 
+  const ownerMutation = useMutation({
+    mutationFn: (item: ChecklistItem) =>
+      apiFetch(`/api/v1/tasks/${taskId}/checklist`, {
+        method: 'PATCH',
+        body: JSON.stringify({ id: item.id, owner_type: item.owner_type === 'client' ? 'team' : 'client' }),
+      }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['tasks', taskId, 'checklist'] }),
+  })
+
   const addMutation = useMutation({
     mutationFn: (title: string) =>
       apiFetch(`/api/v1/tasks/${taskId}/checklist`, {
@@ -852,6 +903,7 @@ function ChecklistSection({ taskId }: { taskId: string }) {
               item={item}
               onToggle={() => toggleMutation.mutate(item)}
               onTimeUpdate={(field, value) => timeMutation.mutate({ id: item.id, [field]: value })}
+              onOwnerToggle={() => ownerMutation.mutate(item)}
             />
           ))
         )}
@@ -875,10 +927,11 @@ function ChecklistSection({ taskId }: { taskId: string }) {
   )
 }
 
-function ChecklistRow({ item, onToggle, onTimeUpdate }: {
+function ChecklistRow({ item, onToggle, onTimeUpdate, onOwnerToggle }: {
   item: ChecklistItem
   onToggle: () => void
   onTimeUpdate: (field: 'estimated_minutes' | 'actual_minutes', value: number | null) => void
+  onOwnerToggle: () => void
 }) {
   const [editing, setEditing] = useState<'est' | 'actual' | null>(null)
   const [editVal, setEditVal] = useState('')
@@ -904,6 +957,17 @@ function ChecklistRow({ item, onToggle, onTimeUpdate }: {
       <span className={`flex-1 text-sm ${item.is_checked ? 'line-through text-muted-foreground' : ''}`}>
         {item.title}
       </span>
+      <button
+        onClick={onOwnerToggle}
+        className={`shrink-0 text-[10px] font-medium px-1.5 py-0.5 rounded-full border transition-colors ${
+          item.owner_type === 'client'
+            ? 'bg-amber-100 text-amber-700 border-amber-300 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-700'
+            : 'bg-muted/50 text-muted-foreground border-transparent hover:border-border'
+        }`}
+        title={item.owner_type === 'client' ? 'Client responsibility — click to change to Team' : 'Team responsibility — click to change to Client'}
+      >
+        {item.owner_type === 'client' ? 'Client' : 'Team'}
+      </button>
       <div className="flex items-center gap-1.5 shrink-0">
         {/* Estimated time */}
         {editing === 'est' ? (

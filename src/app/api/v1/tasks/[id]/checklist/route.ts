@@ -6,6 +6,7 @@ const checklistItemSchema = z.object({
   title: z.string().min(1),
   sort_order: z.number().default(0),
   estimated_minutes: z.number().min(0).nullable().optional(),
+  owner_type: z.enum(['team', 'client']).default('team'),
 })
 
 const toggleCheckSchema = z.object({
@@ -64,6 +65,21 @@ export const PATCH = apiHandler(async (req, { params, supabase, employeeId }) =>
         checked_by: is_checked ? employeeId : null,
         checked_at: is_checked ? new Date().toISOString() : null,
       })
+      .eq('id', id)
+      .eq('task_id', params.id)
+      .select()
+      .single()
+
+    if (error) throw error
+    return NextResponse.json({ success: true, data })
+  }
+
+  // Owner type update
+  if ('owner_type' in rest && !('estimated_minutes' in rest) && !('actual_minutes' in rest)) {
+    const ownerType = z.enum(['team', 'client']).parse(rest.owner_type)
+    const { data, error } = await supabase
+      .from('task_checklist_items')
+      .update({ owner_type: ownerType })
       .eq('id', id)
       .eq('task_id', params.id)
       .select()

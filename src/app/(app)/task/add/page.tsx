@@ -38,7 +38,7 @@ function AddTaskForm() {
   const searchParams = useSearchParams()
   const parentTaskId = searchParams.get('parent_task_id') || undefined
   const createTask = useCreateTask()
-  const [steps, setSteps] = useState<string[]>([])
+  const [steps, setSteps] = useState<{ title: string; owner_type: 'team' | 'client' }[]>([])
   const [reviewer1, setReviewer1] = useState<string>('')
   const [reviewer2, setReviewer2] = useState<string>('')
   const [estHours, setEstHours] = useState('')
@@ -63,9 +63,8 @@ function AddTaskForm() {
 
   const onSubmit = async (data: CreateTaskInput) => {
     const checklist = steps
-      .map((s) => s.trim())
-      .filter(Boolean)
-      .map((title, i) => ({ title, sort_order: i }))
+      .filter((s) => s.title.trim())
+      .map((s, i) => ({ title: s.title.trim(), sort_order: i, owner_type: s.owner_type }))
 
     // Convert h + m to decimal hours
     const h = parseInt(estHours) || 0
@@ -90,16 +89,22 @@ function AddTaskForm() {
   }
 
   function addStep() {
-    setSteps([...steps, ''])
+    setSteps([...steps, { title: '', owner_type: 'team' }])
   }
 
   function removeStep(index: number) {
     setSteps(steps.filter((_, i) => i !== index))
   }
 
-  function updateStep(index: number, value: string) {
+  function updateStep(index: number, title: string) {
     const updated = [...steps]
-    updated[index] = value
+    updated[index] = { ...updated[index], title }
+    setSteps(updated)
+  }
+
+  function toggleStepOwner(index: number) {
+    const updated = [...steps]
+    updated[index] = { ...updated[index], owner_type: updated[index].owner_type === 'team' ? 'client' : 'team' }
     setSteps(updated)
   }
 
@@ -165,10 +170,22 @@ function AddTaskForm() {
                       <span className="text-sm text-muted-foreground w-6 shrink-0">{i + 1}.</span>
                       <Input
                         placeholder={`Step ${i + 1}`}
-                        value={step}
+                        value={step.title}
                         onChange={(e) => updateStep(i, e.target.value)}
                         className="flex-1"
                       />
+                      <button
+                        type="button"
+                        onClick={() => toggleStepOwner(i)}
+                        className={`shrink-0 text-[10px] font-medium px-2 py-0.5 rounded-full border transition-colors ${
+                          step.owner_type === 'client'
+                            ? 'bg-amber-100 text-amber-700 border-amber-300 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-700'
+                            : 'bg-muted text-muted-foreground border-transparent hover:border-border'
+                        }`}
+                        title={step.owner_type === 'client' ? 'Client responsibility — click to change to Team' : 'Team responsibility — click to change to Client'}
+                      >
+                        {step.owner_type === 'client' ? 'Client' : 'Team'}
+                      </button>
                       <Button
                         type="button"
                         size="icon"
@@ -215,8 +232,20 @@ function AddTaskForm() {
                 </div>
 
                 <div className="space-y-2">
+                  <Label>Start Date</Label>
+                  <Input type="date" {...register('start_date')} />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Target Date</Label>
+                  <Input type="date" {...register('target_date')} />
+                  <p className="text-[11px] text-muted-foreground">Internal goal to finish before due date</p>
+                </div>
+
+                <div className="space-y-2">
                   <Label>Due Date</Label>
                   <Input type="date" {...register('due_date')} />
+                  <p className="text-[11px] text-muted-foreground">Statutory / regulatory deadline</p>
                 </div>
 
                 <div className="space-y-2">

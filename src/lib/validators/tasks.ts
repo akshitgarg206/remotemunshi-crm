@@ -9,6 +9,7 @@ export const createTaskSchema = z.object({
   sub_status_id: z.string().uuid().optional(),
   priority: z.enum(['low', 'medium', 'high', 'urgent']).default('medium'),
   due_date: z.string().optional(),
+  target_date: z.string().optional(),
   start_date: z.string().optional(),
   estimated_hours: z.number().min(0).optional(),
   sprint_id: z.string().uuid().optional(),
@@ -20,6 +21,7 @@ export const createTaskSchema = z.object({
     title: z.string().min(1),
     sort_order: z.number().default(0),
     estimated_minutes: z.number().min(0).optional(),
+    owner_type: z.enum(['team', 'client']).default('team'),
   })).optional(),
 })
 
