@@ -41,6 +41,8 @@ function AddTaskForm() {
   const [steps, setSteps] = useState<string[]>([])
   const [reviewer1, setReviewer1] = useState<string>('')
   const [reviewer2, setReviewer2] = useState<string>('')
+  const [estHours, setEstHours] = useState('')
+  const [estMinutes, setEstMinutes] = useState('')
 
   const { data: teamData } = useQuery({
     queryKey: ['team-for-reviewers'],
@@ -64,6 +66,14 @@ function AddTaskForm() {
       .map((s) => s.trim())
       .filter(Boolean)
       .map((title, i) => ({ title, sort_order: i }))
+
+    // Convert h + m to decimal hours
+    const h = parseInt(estHours) || 0
+    const m = parseInt(estMinutes) || 0
+    const totalDecimalHours = h + m / 60
+    if (totalDecimalHours > 0) {
+      data.estimated_hours = Math.round(totalDecimalHours * 100) / 100
+    }
 
     try {
       await createTask.mutateAsync({
@@ -210,8 +220,21 @@ function AddTaskForm() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Estimated Hours</Label>
-                  <Input type="number" step="0.5" {...register('estimated_hours', { valueAsNumber: true })} placeholder="0" />
+                  <Label>Estimated Time</Label>
+                  <div className="flex items-center gap-1.5">
+                    <Input
+                      type="number" min="0" max="999" placeholder="0"
+                      value={estHours} onChange={(e) => setEstHours(e.target.value)}
+                      className="w-16"
+                    />
+                    <span className="text-xs text-muted-foreground">h</span>
+                    <Input
+                      type="number" min="0" max="59" step="5" placeholder="0"
+                      value={estMinutes} onChange={(e) => setEstMinutes(e.target.value)}
+                      className="w-16"
+                    />
+                    <span className="text-xs text-muted-foreground">m</span>
+                  </div>
                 </div>
               </CardContent>
             </Card>

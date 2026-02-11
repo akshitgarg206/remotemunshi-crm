@@ -19,6 +19,7 @@ export const createTaskSchema = z.object({
   checklist: z.array(z.object({
     title: z.string().min(1),
     sort_order: z.number().default(0),
+    estimated_minutes: z.number().min(0).optional(),
   })).optional(),
 })
 

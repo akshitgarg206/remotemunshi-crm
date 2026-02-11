@@ -79,12 +79,41 @@ function formatLabel(s: string) {
   return s.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
 }
 
+// --- Helpers ---
+
+function formatMinutes(totalMinutes: number | null | undefined): string {
+  if (!totalMinutes) return '-'
+  const h = Math.floor(totalMinutes / 60)
+  const m = totalMinutes % 60
+  if (h === 0) return `${m}m`
+  if (m === 0) return `${h}h`
+  return `${h}h ${m}m`
+}
+
+function decimalHoursToHM(hours: number | null | undefined): { h: number; m: number } {
+  if (!hours) return { h: 0, m: 0 }
+  const h = Math.floor(hours)
+  const m = Math.round((hours - h) * 60)
+  return { h, m }
+}
+
+function formatDecimalHours(hours: number | null | undefined): string {
+  if (hours == null) return '-'
+  const { h, m } = decimalHoursToHM(hours)
+  if (h === 0 && m === 0) return '-'
+  if (h === 0) return `${m}m`
+  if (m === 0) return `${h}h`
+  return `${h}h ${m}m`
+}
+
 // --- Types ---
 
 interface ChecklistItem {
   id: string
   title: string
   is_checked: boolean
+  estimated_minutes: number | null
+  actual_minutes: number | null
 }
 
 interface TimeEntry {
@@ -155,29 +184,34 @@ export default function TaskDetailPage() {
 
   const [editOpen, setEditOpen] = useState(false)
   const [editForm, setEditForm] = useState({
-    task_name: '', description: '', priority: 'medium', due_date: '', estimated_hours: '',
+    task_name: '', description: '', priority: 'medium', due_date: '', estH: '', estM: '',
   })
 
   function openEditDialog() {
     if (!task) return
+    const { h, m } = decimalHoursToHM(task.estimated_hours)
     setEditForm({
       task_name: task.task_name || '',
       description: (task as any).description || '',
       priority: task.priority || 'medium',
       due_date: task.due_date?.split('T')[0] || '',
-      estimated_hours: task.estimated_hours != null ? String(task.estimated_hours) : '',
+      estH: h > 0 ? String(h) : '',
+      estM: m > 0 ? String(m) : '',
     })
     setEditOpen(true)
   }
 
   function handleEditSubmit(e: React.FormEvent) {
     e.preventDefault()
+    const h = parseInt(editForm.estH) || 0
+    const m = parseInt(editForm.estM) || 0
+    const totalDecimalHours = h + m / 60
     updateTask.mutate({
       task_name: editForm.task_name,
       description: editForm.description || undefined,
       priority: editForm.priority,
       due_date: editForm.due_date || undefined,
-      estimated_hours: editForm.estimated_hours ? Number(editForm.estimated_hours) : undefined,
+      estimated_hours: totalDecimalHours > 0 ? Math.round(totalDecimalHours * 100) / 100 : undefined,
     }, {
       onSuccess: () => {
         toast.success('Task updated')
@@ -350,8 +384,8 @@ export default function TaskDetailPage() {
               </p>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Estimated Hours</p>
-              <p className="font-medium">{task.estimated_hours ?? '-'}</p>
+              <p className="text-sm text-muted-foreground">Estimated Time</p>
+              <p className="font-medium">{formatDecimalHours(task.estimated_hours)}</p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Created At</p>
@@ -503,8 +537,13 @@ export default function TaskDetailPage() {
                 <Input type="date" value={editForm.due_date} onChange={(e) => setEditForm({ ...editForm, due_date: e.target.value })} />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">Est. Hours</label>
-                <Input type="number" step="0.5" min="0" value={editForm.estimated_hours} onChange={(e) => setEditForm({ ...editForm, estimated_hours: e.target.value })} />
+                <label className="text-sm font-medium">Est. Time</label>
+                <div className="flex items-center gap-1">
+                  <Input type="number" min="0" max="999" placeholder="0" value={editForm.estH} onChange={(e) => setEditForm({ ...editForm, estH: e.target.value })} className="w-14" />
+                  <span className="text-xs text-muted-foreground">h</span>
+                  <Input type="number" min="0" max="59" step="5" placeholder="0" value={editForm.estM} onChange={(e) => setEditForm({ ...editForm, estM: e.target.value })} className="w-14" />
+                  <span className="text-xs text-muted-foreground">m</span>
+                </div>
               </div>
             </div>
             <div className="flex justify-end gap-2 pt-2">
@@ -736,12 +775,23 @@ function ChecklistSection({ taskId }: { taskId: string }) {
 
   const items = (checklistResponse?.data as ChecklistItem[]) || []
   const checkedCount = items.filter((i) => i.is_checked).length
+  const totalEstMin = items.reduce((s, i) => s + (i.estimated_minutes || 0), 0)
+  const totalActMin = items.reduce((s, i) => s + (i.actual_minutes || 0), 0)
 
   const toggleMutation = useMutation({
     mutationFn: (item: ChecklistItem) =>
       apiFetch(`/api/v1/tasks/${taskId}/checklist`, {
         method: 'PATCH',
         body: JSON.stringify({ id: item.id, is_checked: !item.is_checked }),
+      }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['tasks', taskId, 'checklist'] }),
+  })
+
+  const timeMutation = useMutation({
+    mutationFn: (payload: { id: string; estimated_minutes?: number | null; actual_minutes?: number | null }) =>
+      apiFetch(`/api/v1/tasks/${taskId}/checklist`, {
+        method: 'PATCH',
+        body: JSON.stringify(payload),
       }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['tasks', taskId, 'checklist'] }),
   })
@@ -755,9 +805,9 @@ function ChecklistSection({ taskId }: { taskId: string }) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks', taskId, 'checklist'] })
       setNewItem('')
-      toast.success('Checklist item added')
+      toast.success('Step added')
     },
-    onError: () => toast.error('Failed to add item'),
+    onError: () => toast.error('Failed to add step'),
   })
 
   function handleAdd() {
@@ -771,42 +821,46 @@ function ChecklistSection({ taskId }: { taskId: string }) {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <CheckCircle2 className="size-5" />
-          Checklist
+          Steps
           {items.length > 0 && (
             <span className="text-sm font-normal text-muted-foreground">
-              {checkedCount}/{items.length} completed
+              {checkedCount}/{items.length} done
+            </span>
+          )}
+          {totalActMin > 0 && (
+            <span className="text-sm font-normal text-muted-foreground ml-auto">
+              <Clock className="inline size-3.5 mr-0.5" />
+              {formatMinutes(totalActMin)}
+              {totalEstMin > 0 && <span className="text-muted-foreground/60"> / {formatMinutes(totalEstMin)}</span>}
             </span>
           )}
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="space-y-1">
         {isLoading ? (
           <div className="space-y-2">
-            <Skeleton className="h-6 w-full" />
-            <Skeleton className="h-6 w-full" />
-            <Skeleton className="h-6 w-3/4" />
+            <Skeleton className="h-8 w-full" />
+            <Skeleton className="h-8 w-full" />
+            <Skeleton className="h-8 w-3/4" />
           </div>
         ) : items.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No checklist items yet.</p>
+          <p className="text-sm text-muted-foreground">No steps yet.</p>
         ) : (
           items.map((item) => (
-            <div key={item.id} className="flex items-center gap-3">
-              <Checkbox
-                checked={item.is_checked}
-                onCheckedChange={() => toggleMutation.mutate(item)}
-              />
-              <span className={item.is_checked ? 'line-through text-muted-foreground' : ''}>
-                {item.title}
-              </span>
-            </div>
+            <ChecklistRow
+              key={item.id}
+              item={item}
+              onToggle={() => toggleMutation.mutate(item)}
+              onTimeUpdate={(field, value) => timeMutation.mutate({ id: item.id, [field]: value })}
+            />
           ))
         )}
 
-        <Separator />
+        <Separator className="!mt-3" />
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 !mt-3">
           <Input
-            placeholder="Add item..."
+            placeholder="Add step..."
             value={newItem}
             onChange={(e) => setNewItem(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
@@ -818,6 +872,88 @@ function ChecklistSection({ taskId }: { taskId: string }) {
         </div>
       </CardContent>
     </Card>
+  )
+}
+
+function ChecklistRow({ item, onToggle, onTimeUpdate }: {
+  item: ChecklistItem
+  onToggle: () => void
+  onTimeUpdate: (field: 'estimated_minutes' | 'actual_minutes', value: number | null) => void
+}) {
+  const [editing, setEditing] = useState<'est' | 'actual' | null>(null)
+  const [editVal, setEditVal] = useState('')
+
+  function startEdit(field: 'est' | 'actual') {
+    const val = field === 'est' ? item.estimated_minutes : item.actual_minutes
+    setEditVal(val != null ? String(val) : '')
+    setEditing(field)
+  }
+
+  function commitEdit() {
+    if (!editing) return
+    const field = editing === 'est' ? 'estimated_minutes' : 'actual_minutes'
+    const numVal = editVal.trim() === '' ? null : parseInt(editVal)
+    if (numVal !== null && (isNaN(numVal) || numVal < 0)) { setEditing(null); return }
+    onTimeUpdate(field, numVal)
+    setEditing(null)
+  }
+
+  return (
+    <div className="flex items-center gap-3 py-1.5 group rounded-md hover:bg-muted/30 px-1 -mx-1">
+      <Checkbox checked={item.is_checked} onCheckedChange={onToggle} />
+      <span className={`flex-1 text-sm ${item.is_checked ? 'line-through text-muted-foreground' : ''}`}>
+        {item.title}
+      </span>
+      <div className="flex items-center gap-1.5 shrink-0">
+        {/* Estimated time */}
+        {editing === 'est' ? (
+          <div className="flex items-center gap-0.5">
+            <Input
+              type="number" min="0" className="w-14 h-6 text-xs px-1"
+              value={editVal} onChange={(e) => setEditVal(e.target.value)}
+              onBlur={commitEdit}
+              onKeyDown={(e) => { if (e.key === 'Enter') commitEdit(); if (e.key === 'Escape') setEditing(null) }}
+              autoFocus
+            />
+            <span className="text-[10px] text-muted-foreground">m</span>
+          </div>
+        ) : (
+          <button
+            onClick={() => startEdit('est')}
+            className="text-[10px] px-1.5 py-0.5 rounded bg-muted/50 text-muted-foreground hover:bg-muted transition-colors"
+            title="Estimated time (minutes)"
+          >
+            Est: {item.estimated_minutes != null ? formatMinutes(item.estimated_minutes) : '—'}
+          </button>
+        )}
+
+        {/* Actual time */}
+        {editing === 'actual' ? (
+          <div className="flex items-center gap-0.5">
+            <Input
+              type="number" min="0" className="w-14 h-6 text-xs px-1"
+              value={editVal} onChange={(e) => setEditVal(e.target.value)}
+              onBlur={commitEdit}
+              onKeyDown={(e) => { if (e.key === 'Enter') commitEdit(); if (e.key === 'Escape') setEditing(null) }}
+              autoFocus
+            />
+            <span className="text-[10px] text-muted-foreground">m</span>
+          </div>
+        ) : (
+          <button
+            onClick={() => startEdit('actual')}
+            className={`text-[10px] px-1.5 py-0.5 rounded transition-colors ${
+              item.actual_minutes != null
+                ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-900/50'
+                : 'bg-muted/50 text-muted-foreground hover:bg-muted'
+            }`}
+            title="Actual time (minutes)"
+          >
+            Act: {item.actual_minutes != null ? formatMinutes(item.actual_minutes) : '—'}
+          </button>
+        )}
+      </div>
+    </div>
   )
 }
 
