@@ -341,12 +341,12 @@ export default function ServiceDetailPage() {
                       className="flex w-full items-center justify-between px-4 py-3 text-left hover:bg-muted/50 transition-colors"
                     >
                       <div>
-                        <span className="font-medium text-sm">{client.name}</span>
-                        {client.code && <span className="ml-2 text-xs text-muted-foreground">{client.code}</span>}
+                        <span className="font-medium text-sm">{client.business_name}</span>
+                        {client.client_code && <span className="ml-2 text-xs text-muted-foreground">{client.client_code}</span>}
                       </div>
                       <div className="flex items-center gap-2">
-                        <Badge variant="secondary" className={client.is_active !== false ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-gray-100 text-gray-500'}>
-                          {client.is_active !== false ? 'Active' : 'Inactive'}
+                        <Badge variant="secondary" className={client.status === 'active' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-gray-100 text-gray-500'}>
+                          {client.status === 'active' ? 'Active' : 'Inactive'}
                         </Badge>
                         <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
                       </div>
@@ -370,8 +370,8 @@ export default function ServiceDetailPage() {
                       className="flex w-full items-center justify-between px-4 py-3 text-left hover:bg-muted/50 transition-colors"
                     >
                       <div className="min-w-0 flex-1 mr-3">
-                        <span className="font-medium text-sm truncate block">{task.title}</span>
-                        {task.clients?.name && <span className="text-xs text-muted-foreground">{task.clients.name}</span>}
+                        <span className="font-medium text-sm truncate block">{task.task_name}</span>
+                        {task.clients?.business_name && <span className="text-xs text-muted-foreground">{task.clients.business_name}</span>}
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
                         <Badge variant="secondary" className={statusColors[task.status] || ''}>

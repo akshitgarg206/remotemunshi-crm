@@ -9,12 +9,12 @@ export const GET = apiHandler(async (req, { params, supabase }) => {
   const [clientsRes, tasksRes, templatesRes, bundlesRes] = await Promise.all([
     supabase
       .from('client_services')
-      .select('service_id, clients(id, name, code, is_active)')
+      .select('service_id, clients(id, business_name, client_code, status)')
       .eq('service_id', serviceId)
       .eq('is_active', true),
     supabase
       .from('tasks')
-      .select('id, title, status, priority, created_at, clients(id, name)')
+      .select('id, task_name, status, priority, created_at, clients(id, business_name)')
       .eq('service_id', serviceId)
       .is('deleted_at', null)
       .order('created_at', { ascending: false })
