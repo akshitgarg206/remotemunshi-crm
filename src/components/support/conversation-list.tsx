@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -49,6 +49,13 @@ export function ConversationList() {
   }>
   const activeAccounts = accounts.filter(a => a.status === 'active')
   const counts = (countsData?.data || countsData || {}) as Record<string, number>
+
+  // Map phone_number_id → account number (1-based) for WhatsApp badge display
+  const waAccountMap = useMemo(() => {
+    const map: Record<string, number> = {}
+    activeAccounts.forEach((acc, idx) => { map[acc.phone_number_id] = idx + 1 })
+    return map
+  }, [activeAccounts])
 
   const filters: Record<string, string | number | undefined> = {
     search: search || undefined,
@@ -201,14 +208,19 @@ export function ConversationList() {
               {emptyMessages[selectedChannel || 'all']}
             </p>
           ) : (
-            conversations.map((conv: Record<string, unknown>) => (
-              <ConversationListItem
-                key={conv.id as string}
-                conversation={conv as ConversationListItemProps['conversation']}
-                isActive={activeConversationId === conv.id}
-                onClick={() => setActiveConversationId(conv.id as string)}
-              />
-            ))
+            conversations.map((conv: Record<string, unknown>) => {
+              const meta = conv.metadata as Record<string, string> | null
+              const pnId = meta?.phone_number_id
+              return (
+                <ConversationListItem
+                  key={conv.id as string}
+                  conversation={conv as ConversationListItemProps['conversation']}
+                  isActive={activeConversationId === conv.id}
+                  onClick={() => setActiveConversationId(conv.id as string)}
+                  waAccountNumber={conv.channel === 'whatsapp' && pnId ? waAccountMap[pnId] ?? null : null}
+                />
+              )
+            })
           )}
         </div>
       </ScrollArea>

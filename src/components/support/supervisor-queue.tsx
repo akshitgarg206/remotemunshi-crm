@@ -3,7 +3,10 @@
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Mail, Phone, MessageCircle } from 'lucide-react'
+import { WhatsAppSvgIcon } from '@/components/icons/whatsapp-icon'
 import { useEscalations } from '@/hooks/queries/use-support-escalations'
+import { useWhatsAppAccounts } from '@/hooks/queries/use-whatsapp-accounts'
 import { SlaTimer } from './sla-timer'
 import { cn } from '@/lib/utils'
 
@@ -14,11 +17,11 @@ const priorityBand: Record<string, string> = {
   urgent: 'border-l-red-500',
 }
 
-const channelIcons: Record<string, string> = {
-  whatsapp: 'WA',
-  email: 'EM',
-  phone: 'PH',
-  sms: 'SM',
+const channelIconMap: Record<string, { icon: React.ElementType; label: string }> = {
+  whatsapp: { icon: WhatsAppSvgIcon, label: 'WA' },
+  email: { icon: Mail, label: 'Email' },
+  phone: { icon: Phone, label: 'Phone' },
+  sms: { icon: MessageCircle, label: 'SMS' },
 }
 
 interface SupervisorQueueProps {
@@ -33,6 +36,10 @@ export function SupervisorQueue({ selectedId, onSelect }: SupervisorQueueProps) 
     sortOrder: 'asc',
     pageSize: 50,
   })
+
+  // WhatsApp account map for numbered badges
+  const { data: waData } = useWhatsAppAccounts()
+  const waAccounts = ((waData?.data || waData || []) as Array<{ phone_number_id: string; status: string }>).filter(a => a.status === 'active')
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const escalations = (data?.data || []) as any[]
@@ -74,11 +81,22 @@ export function SupervisorQueue({ selectedId, onSelect }: SupervisorQueueProps) 
               >
                 <div className="flex items-start justify-between mb-1">
                   <div className="flex items-center gap-2">
-                    {channel && (
-                      <Badge variant="outline" className="text-[10px] px-1 py-0">
-                        {channelIcons[channel] || channel}
-                      </Badge>
-                    )}
+                    {channel && (() => {
+                      const ch = channelIconMap[channel]
+                      const convMeta = conversation?.metadata as Record<string, string> | null
+                      const pnId = convMeta?.phone_number_id
+                      const waNum = channel === 'whatsapp' && pnId
+                        ? (waAccounts.findIndex(a => a.phone_number_id === pnId) + 1) || null
+                        : null
+                      const Icon = ch?.icon
+                      const label = channel === 'whatsapp' && waNum ? `WA${waNum}` : ch?.label || channel
+                      return (
+                        <Badge variant="outline" className="text-[10px] px-1 py-0 inline-flex items-center gap-0.5">
+                          {Icon && <Icon className="h-2.5 w-2.5" />}
+                          {label}
+                        </Badge>
+                      )
+                    })()}
                     <span className="text-sm font-medium truncate">
                       {client?.business_name as string || 'Unknown'}
                     </span>

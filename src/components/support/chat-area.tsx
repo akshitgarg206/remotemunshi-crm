@@ -5,8 +5,10 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { ArrowUpRight, MessageSquare } from 'lucide-react'
+import { ArrowUpRight, MessageSquare, Mail, Phone, MessageCircle } from 'lucide-react'
+import { WhatsAppSvgIcon } from '@/components/icons/whatsapp-icon'
 import { useConversation, useConversationMessages } from '@/hooks/queries/use-support-conversations'
+import { useWhatsAppAccounts } from '@/hooks/queries/use-whatsapp-accounts'
 import { useRealtimeMessages } from '@/hooks/use-realtime-messages'
 import { MessageBubble } from './message-bubble'
 import { MessageComposer } from './message-composer'
@@ -35,6 +37,21 @@ export function ChatArea({ conversationId, onEscalate, composerRef }: ChatAreaPr
   const conversation = convData?.data as any
   const messages = (msgData?.data || []) as any[]
   const ticket = conversation?.support_tickets?.[0]
+
+  // Resolve WhatsApp account number for channel badge
+  const { data: waData } = useWhatsAppAccounts()
+  const waAccounts = ((waData?.data || waData || []) as Array<{ phone_number_id: string; status: string }>).filter(a => a.status === 'active')
+  const convPhoneNumberId = (conversation?.metadata as Record<string, string> | null)?.phone_number_id
+  const waAccountNumber = conversation?.channel === 'whatsapp' && convPhoneNumberId
+    ? (waAccounts.findIndex(a => a.phone_number_id === convPhoneNumberId) + 1) || null
+    : null
+
+  const channelIcons: Record<string, { icon: React.ElementType; label: string }> = {
+    whatsapp: { icon: WhatsAppSvgIcon, label: waAccountNumber ? `WhatsApp ${waAccountNumber}` : 'WhatsApp' },
+    email: { icon: Mail, label: 'Email' },
+    phone: { icon: Phone, label: 'Phone' },
+    sms: { icon: MessageCircle, label: 'SMS' },
+  }
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {
@@ -88,9 +105,24 @@ export function ChatArea({ conversationId, onEscalate, composerRef }: ChatAreaPr
               {conversation.status}
             </Badge>
           </div>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            {conversation.subject || `via ${conversation.channel}`}
-          </p>
+          <div className="flex items-center gap-1.5 mt-0.5">
+            {(() => {
+              const ch = channelIcons[conversation.channel]
+              if (ch) {
+                const Icon = ch.icon
+                return (
+                  <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                    <Icon className="h-3 w-3" />
+                    <span>{ch.label}</span>
+                  </span>
+                )
+              }
+              return <span className="text-xs text-muted-foreground">via {conversation.channel}</span>
+            })()}
+            {conversation.subject && (
+              <span className="text-xs text-muted-foreground">&mdash; {conversation.subject}</span>
+            )}
+          </div>
         </div>
         <div className="flex items-center gap-2">
           {onEscalate && (
@@ -132,6 +164,7 @@ export function ChatArea({ conversationId, onEscalate, composerRef }: ChatAreaPr
       <MessageComposer
         conversationId={conversationId}
         channel={conversation.channel}
+        waAccountNumber={waAccountNumber}
         composerRef={composerRef}
       />
     </div>

@@ -4,7 +4,8 @@ import { useState, useRef, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
-import { Send, Paperclip, Lock, LockOpen } from 'lucide-react'
+import { Send, Paperclip, Lock, LockOpen, Mail, Phone, MessageCircle } from 'lucide-react'
+import { WhatsAppSvgIcon } from '@/components/icons/whatsapp-icon'
 import { useSendMessage } from '@/hooks/queries/use-support-conversations'
 import { useOmnideskStore } from '@/stores/omnidesk-store'
 import { cn } from '@/lib/utils'
@@ -18,13 +19,22 @@ const channelLabels: Record<string, string> = {
   in_person: 'In Person',
 }
 
+const channelIconMap: Record<string, React.ElementType> = {
+  whatsapp: WhatsAppSvgIcon,
+  email: Mail,
+  phone: Phone,
+  sms: MessageCircle,
+}
+
 interface MessageComposerProps {
   conversationId: string
   channel?: string
+  /** 1-based WhatsApp account number */
+  waAccountNumber?: number | null
   composerRef?: React.MutableRefObject<{ insertText: (text: string) => void } | null>
 }
 
-export function MessageComposer({ conversationId, channel, composerRef }: MessageComposerProps) {
+export function MessageComposer({ conversationId, channel, waAccountNumber, composerRef }: MessageComposerProps) {
   const [content, setContent] = useState('')
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const { isInternalNote, setIsInternalNote, selectedChannel } = useOmnideskStore()
@@ -91,8 +101,14 @@ export function MessageComposer({ conversationId, channel, composerRef }: Messag
       {/* Channel indicator */}
       <div className="flex items-center gap-2">
         <span className="text-xs text-muted-foreground">Sending as</span>
-        <Badge variant="outline" className="text-xs">
-          {channelLabels[displayChannel] || displayChannel}
+        <Badge variant="outline" className="text-xs inline-flex items-center gap-1">
+          {channelIconMap[displayChannel] && (() => {
+            const Icon = channelIconMap[displayChannel]
+            return <Icon className="h-3 w-3" />
+          })()}
+          {displayChannel === 'whatsapp' && waAccountNumber
+            ? `WhatsApp ${waAccountNumber}`
+            : channelLabels[displayChannel] || displayChannel}
         </Badge>
       </div>
 

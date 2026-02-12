@@ -7,7 +7,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { KpiCard } from '@/components/kpi-cards/kpi-card'
-import { MessageSquarePlus, MessagesSquare, Ticket, ArrowUpRight, Clock, AlertTriangle, Search } from 'lucide-react'
+import { MessageSquarePlus, MessagesSquare, Ticket, ArrowUpRight, Clock, AlertTriangle, Search, Mail, Phone, MessageCircle } from 'lucide-react'
+import { WhatsAppSvgIcon, WhatsAppNumberIcon } from '@/components/icons/whatsapp-icon'
 import { ConversationList } from '@/components/support/conversation-list'
 import { ChatArea } from '@/components/support/chat-area'
 import { CustomerContextPanel } from '@/components/support/customer-context-panel'
@@ -229,10 +230,18 @@ export default function SupportPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="whatsapp">WhatsApp</SelectItem>
-                  <SelectItem value="email">Email</SelectItem>
-                  <SelectItem value="phone">Phone</SelectItem>
-                  <SelectItem value="sms">SMS</SelectItem>
+                  <SelectItem value="whatsapp">
+                    <span className="inline-flex items-center gap-1.5"><WhatsAppSvgIcon className="h-3.5 w-3.5 text-green-600" /> WhatsApp</span>
+                  </SelectItem>
+                  <SelectItem value="email">
+                    <span className="inline-flex items-center gap-1.5"><Mail className="h-3.5 w-3.5 text-blue-600" /> Email</span>
+                  </SelectItem>
+                  <SelectItem value="phone">
+                    <span className="inline-flex items-center gap-1.5"><Phone className="h-3.5 w-3.5 text-purple-600" /> Phone</span>
+                  </SelectItem>
+                  <SelectItem value="sms">
+                    <span className="inline-flex items-center gap-1.5"><MessageCircle className="h-3.5 w-3.5 text-amber-600" /> SMS</span>
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -320,14 +329,17 @@ export default function SupportPage() {
                       <SelectValue placeholder="Select number..." />
                     </SelectTrigger>
                     <SelectContent>
-                      {waAccounts.map((acct) => {
+                      {waAccounts.map((acct, idx) => {
                         const provider = (acct.metadata?.provider as string) || 'chakrahq'
                         return (
                           <SelectItem key={acct.id} value={acct.phone_number_id}>
-                            {acct.display_phone_number}
-                            {acct.business_name ? ` (${acct.business_name})` : ''}
-                            {' '}&mdash; {provider === 'ycloud' ? 'YCloud' : 'ChakraHQ'}
-                            {acct.is_default ? ' [Default]' : ''}
+                            <span className="inline-flex items-center gap-2">
+                              <WhatsAppNumberIcon className="h-3.5 w-3.5 text-green-600" number={idx + 1} />
+                              <span className="ml-1">{acct.display_phone_number}</span>
+                              {acct.business_name && <span className="text-muted-foreground">({acct.business_name})</span>}
+                              <span className="text-muted-foreground">&mdash; {provider === 'ycloud' ? 'YCloud' : 'ChakraHQ'}</span>
+                              {acct.is_default && <span className="text-xs text-green-600 font-medium">[Default]</span>}
+                            </span>
                           </SelectItem>
                         )
                       })}

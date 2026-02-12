@@ -30,13 +30,16 @@ interface ConversationListItemProps {
   }
   isActive: boolean
   onClick: () => void
+  /** 1-based WhatsApp account number (null for non-WA or unknown account) */
+  waAccountNumber?: number | null
 }
 
-export function ConversationListItem({ conversation, isActive, onClick }: ConversationListItemProps) {
+export function ConversationListItem({ conversation, isActive, onClick, waAccountNumber }: ConversationListItemProps) {
   const channel = channelConfig[conversation.channel] || channelConfig.email
   const ChannelIcon = channel.icon
   const name = conversation.contact?.name || conversation.client?.business_name || 'Unknown'
   const initials = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)
+  const showWaNumber = conversation.channel === 'whatsapp' && waAccountNumber
 
   return (
     <button
@@ -52,9 +55,18 @@ export function ConversationListItem({ conversation, isActive, onClick }: Conver
         <Avatar className="h-10 w-10">
           <AvatarFallback className="bg-muted text-muted-foreground text-xs">{initials}</AvatarFallback>
         </Avatar>
-        <div className={cn('absolute -bottom-0.5 -right-0.5 h-4 w-4 rounded-full flex items-center justify-center', channel.color)}>
-          <ChannelIcon className="h-2.5 w-2.5 text-white" />
-        </div>
+        {showWaNumber ? (
+          /* WhatsApp pill badge: icon + account number */
+          <div className="absolute -bottom-0.5 -right-1.5 h-4 rounded-full flex items-center gap-0.5 px-1 bg-green-500">
+            <ChannelIcon className="h-2.5 w-2.5 text-white" />
+            <span className="text-[7px] font-bold text-white leading-none">{waAccountNumber}</span>
+          </div>
+        ) : (
+          /* Standard round badge */
+          <div className={cn('absolute -bottom-0.5 -right-0.5 h-4 w-4 rounded-full flex items-center justify-center', channel.color)}>
+            <ChannelIcon className="h-2.5 w-2.5 text-white" />
+          </div>
+        )}
       </div>
 
       <div className="flex-1 min-w-0">
