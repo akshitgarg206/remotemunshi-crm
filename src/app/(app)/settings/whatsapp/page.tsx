@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { toast } from 'sonner'
-import { ArrowLeft, Phone, Trash2, Star, Unplug, RefreshCw, Loader2, Plus, CheckCircle2, XCircle, Copy } from 'lucide-react'
+import { ArrowLeft, Phone, Trash2, Star, Unplug, RefreshCw, Loader2, Plus, CheckCircle2, XCircle, Copy, Download } from 'lucide-react'
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -110,6 +110,31 @@ export default function WhatsAppSettingsPage() {
       onSuccess: () => toast.success('Account removed'),
       onError: () => toast.error('Failed to remove account'),
     })
+  }
+
+  const [syncing, setSyncing] = useState(false)
+  const [syncResult, setSyncResult] = useState<{
+    chats_imported: number; messages_imported: number; contacts_created: number; errors: string[]
+  } | null>(null)
+
+  const handleSyncHistory = async () => {
+    if (!confirm('Import all WhatsApp chat history from ChakraHQ? This may take a few minutes.')) return
+    setSyncing(true)
+    setSyncResult(null)
+    try {
+      const res = await fetch('/api/v1/whatsapp/sync-history', { method: 'POST' })
+      const json = await res.json()
+      if (json.success) {
+        setSyncResult(json.data)
+        toast.success(`Imported ${json.data.chats_imported} chats, ${json.data.messages_imported} messages`)
+      } else {
+        toast.error(json.error?.message || 'Sync failed')
+      }
+    } catch {
+      toast.error('Sync request failed')
+    } finally {
+      setSyncing(false)
+    }
   }
 
   const webhookUrl = typeof window !== 'undefined'
@@ -351,6 +376,44 @@ export default function WhatsAppSettingsPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Sync Chat History */}
+      {accounts.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Chat History</CardTitle>
+            <CardDescription>
+              Import existing WhatsApp conversations from ChakraHQ into OmniDesk
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center gap-3">
+              <Button onClick={handleSyncHistory} disabled={syncing} variant="outline">
+                {syncing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                {syncing ? 'Syncing...' : 'Import Chat History'}
+              </Button>
+              <p className="text-sm text-muted-foreground">
+                Pulls all chats &amp; messages from ChakraHQ. Safe to run multiple times — duplicates are skipped.
+              </p>
+            </div>
+            {syncResult && (
+              <div className="rounded-lg border bg-muted/50 p-3 text-sm space-y-1">
+                <p><strong>{syncResult.chats_imported}</strong> conversations imported</p>
+                <p><strong>{syncResult.messages_imported}</strong> messages imported</p>
+                <p><strong>{syncResult.contacts_created}</strong> new contacts created</p>
+                {syncResult.errors.length > 0 && (
+                  <div className="mt-2 text-destructive">
+                    <p className="font-medium">{syncResult.errors.length} errors:</p>
+                    {syncResult.errors.slice(0, 5).map((e, i) => (
+                      <p key={i} className="text-xs">{e}</p>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Webhook Configuration */}
       <Card>

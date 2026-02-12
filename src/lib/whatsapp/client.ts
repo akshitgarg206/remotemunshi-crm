@@ -218,6 +218,109 @@ export async function downloadMedia(params: {
   return { buffer: Buffer.from(arrayBuffer), mimeType: mimeType || 'application/octet-stream' }
 }
 
+// ---- ChakraHQ Chat APIs (non-pass-through, ChakraHQ's own endpoints) ----
+
+const CHAKRA_CHAT_BASE = 'https://api.chakrahq.com/v1/ext'
+
+export interface ChakraChat {
+  id: string
+  provider: string
+  providerHandle: string
+  providerHandleId: string
+  initiatedDirection: string
+  primaryContact: {
+    id: string
+    name: string
+    firstName: string
+    lastName: string
+    photo: string | null
+  } | null
+  primaryContactHandle: {
+    id: string
+    value: string
+    type: string
+  } | null
+  latestMessage: {
+    text: string
+    direction: string
+    timestamp: number
+    dataType: string
+  } | null
+  latestMessageTs: number
+  status: string
+  createdAt: number
+  updatedAt: number
+}
+
+export interface ChakraChatMessage {
+  id: string
+  chat: string
+  externalId: string
+  provider: string
+  dataType: string
+  body: { text?: { body: string }; [key: string]: unknown } | null
+  text: string
+  attachments: { url: string; type: string; name?: string }[] | null
+  deliveryStatus: string
+  direction: string
+  timestamp: number
+  createdAt: number
+  updatedAt: number
+}
+
+/**
+ * List all chats from ChakraHQ (paginated, max 100 per page)
+ */
+export async function listChats(params?: { page?: number; limit?: number }): Promise<ChakraChat[]> {
+  const { accessToken } = getConfig()
+  const res = await fetch(`${CHAKRA_CHAT_BASE}/chat`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      orderField: 'updatedAt',
+      limit: params?.limit || 100,
+      page: params?.page || 1,
+    }),
+  })
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(`ChakraHQ list chats error: ${res.status} ${JSON.stringify(err)}`)
+  }
+
+  const json = await res.json()
+  return (json._data || []) as ChakraChat[]
+}
+
+/**
+ * List messages for a specific chat (paginated, max 1000 per page)
+ */
+export async function listChatMessages(chatId: string, params?: { page?: number; limit?: number }): Promise<ChakraChatMessage[]> {
+  const { accessToken } = getConfig()
+  const res = await fetch(`${CHAKRA_CHAT_BASE}/chat/${chatId}/message`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      limit: params?.limit || 1000,
+      page: params?.page || 1,
+    }),
+  })
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(`ChakraHQ list messages error: ${res.status} ${JSON.stringify(err)}`)
+  }
+
+  const json = await res.json()
+  return (json._data || []) as ChakraChatMessage[]
+}
+
 /**
  * Discover connected WhatsApp phone numbers via ChakraHQ config
  */
