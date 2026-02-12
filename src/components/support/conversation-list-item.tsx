@@ -3,15 +3,16 @@
 import { cn } from '@/lib/utils'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
-import { MessageSquare, Mail, Phone, Smartphone } from 'lucide-react'
+import { MessageCircle, Mail, Phone } from 'lucide-react'
+import { WhatsAppSvgIcon } from '@/components/icons/whatsapp-icon'
 import { formatDistanceToNow } from 'date-fns'
 
 const channelConfig: Record<string, { icon: React.ElementType; color: string; label: string }> = {
-  whatsapp: { icon: Smartphone, color: 'bg-green-500', label: 'WhatsApp' },
+  whatsapp: { icon: WhatsAppSvgIcon, color: 'bg-green-500', label: 'WhatsApp' },
   email: { icon: Mail, color: 'bg-blue-500', label: 'Email' },
   phone: { icon: Phone, color: 'bg-purple-500', label: 'Phone' },
-  sms: { icon: MessageSquare, color: 'bg-amber-500', label: 'SMS' },
-  in_person: { icon: MessageSquare, color: 'bg-muted-foreground', label: 'In Person' },
+  sms: { icon: MessageCircle, color: 'bg-amber-500', label: 'SMS' },
+  in_person: { icon: Phone, color: 'bg-muted-foreground', label: 'In Person' },
 }
 
 interface ConversationListItemProps {

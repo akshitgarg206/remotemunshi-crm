@@ -6,7 +6,8 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Search, MessageSquare, Smartphone, Mail, Phone } from 'lucide-react'
+import { Search, Inbox, Mail, Phone, MessageCircle } from 'lucide-react'
+import { WhatsAppSvgIcon, WhatsAppNumberIcon } from '@/components/icons/whatsapp-icon'
 import { useConversations } from '@/hooks/queries/use-support-conversations'
 import { useRealtimeConversations } from '@/hooks/use-realtime-messages'
 import { useOmnideskStore, type Channel } from '@/stores/omnidesk-store'
@@ -16,11 +17,11 @@ import { ConversationListItem } from './conversation-list-item'
 import { cn } from '@/lib/utils'
 
 const channelTabs: { key: Channel | null; label: string; icon: React.ElementType; color: string; activeColor: string }[] = [
-  { key: null, label: 'All', icon: MessageSquare, color: 'text-muted-foreground', activeColor: 'text-primary border-primary bg-primary/10' },
-  { key: 'whatsapp', label: 'WhatsApp', icon: Smartphone, color: 'text-muted-foreground', activeColor: 'text-green-600 border-green-500 bg-green-500/10 dark:text-green-400' },
+  { key: null, label: 'All', icon: Inbox, color: 'text-muted-foreground', activeColor: 'text-primary border-primary bg-primary/10' },
+  { key: 'whatsapp', label: 'WhatsApp', icon: WhatsAppSvgIcon, color: 'text-muted-foreground', activeColor: 'text-green-600 border-green-500 bg-green-500/10 dark:text-green-400' },
   { key: 'email', label: 'Email', icon: Mail, color: 'text-muted-foreground', activeColor: 'text-blue-600 border-blue-500 bg-blue-500/10 dark:text-blue-400' },
   { key: 'phone', label: 'Phone', icon: Phone, color: 'text-muted-foreground', activeColor: 'text-purple-600 border-purple-500 bg-purple-500/10 dark:text-purple-400' },
-  { key: 'sms', label: 'SMS', icon: MessageSquare, color: 'text-muted-foreground', activeColor: 'text-amber-600 border-amber-500 bg-amber-500/10 dark:text-amber-400' },
+  { key: 'sms', label: 'SMS', icon: MessageCircle, color: 'text-muted-foreground', activeColor: 'text-amber-600 border-amber-500 bg-amber-500/10 dark:text-amber-400' },
 ]
 
 const emptyMessages: Record<string, string> = {
@@ -124,12 +125,13 @@ export function ConversationList() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="__all__">All Numbers</SelectItem>
-                {activeAccounts.map((acc) => {
+                {activeAccounts.map((acc, idx) => {
                   const provider = (acc.metadata?.provider as string) || 'meta'
                   return (
                     <SelectItem key={acc.phone_number_id} value={acc.phone_number_id}>
                       <span className="flex items-center gap-2">
-                        <span>{acc.display_phone_number}</span>
+                        <WhatsAppNumberIcon className="h-3.5 w-3.5 text-green-600 dark:text-green-400" number={idx + 1} />
+                        <span className="ml-1">{acc.display_phone_number}</span>
                         {acc.business_name && (
                           <span className="text-muted-foreground">({acc.business_name})</span>
                         )}
