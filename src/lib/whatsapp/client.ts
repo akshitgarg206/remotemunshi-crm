@@ -79,27 +79,34 @@ export async function sendTextMessage(params: SendTextParams): Promise<WhatsAppA
   const { phoneNumberId, to, body, previewUrl = false } = params
   const { accessToken } = getConfig()
 
-  const res = await fetch(getMessagesUrl(phoneNumberId), {
+  const url = getMessagesUrl(phoneNumberId)
+  const payload = {
+    messaging_product: 'whatsapp',
+    recipient_type: 'individual',
+    to,
+    type: 'text',
+    text: { preview_url: previewUrl, body },
+  }
+
+  console.log('WhatsApp sendTextMessage:', { url, to, phoneNumberId })
+
+  const res = await fetch(url, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${accessToken}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({
-      messaging_product: 'whatsapp',
-      recipient_type: 'individual',
-      to,
-      type: 'text',
-      text: { preview_url: previewUrl, body },
-    }),
+    body: JSON.stringify(payload),
   })
 
+  const rawJson = await res.json().catch(() => ({}))
+  console.log('WhatsApp sendTextMessage response:', { status: res.status, ok: res.ok, body: JSON.stringify(rawJson) })
+
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}))
-    throw new Error(`WhatsApp send error: ${res.status} ${JSON.stringify(err)}`)
+    throw new Error(`WhatsApp send error: ${res.status} ${JSON.stringify(rawJson)}`)
   }
 
-  return parseResponse(await res.json())
+  return parseResponse(rawJson as Record<string, unknown>)
 }
 
 export async function sendMediaMessage(params: SendMediaParams): Promise<WhatsAppApiResponse> {

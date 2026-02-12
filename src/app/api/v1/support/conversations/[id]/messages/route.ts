@@ -77,9 +77,15 @@ export const POST = apiHandler(async (req, { params, supabase, employeeId }) => 
         .eq('id', params.id)
         .single()
 
+      console.log('WhatsApp outbound check:', { channel: conv?.channel, contact_id: conv?.contact_id, metadata: conv?.metadata })
+
       if (conv?.channel === 'whatsapp') {
         const convMeta = (conv.metadata as Record<string, string>) || {}
         const phoneNumberId = convMeta.phone_number_id
+
+        if (!phoneNumberId) {
+          console.error('WhatsApp outbound: no phone_number_id in conversation metadata')
+        }
 
         if (phoneNumberId) {
           // Get recipient phone from contact
@@ -88,6 +94,8 @@ export const POST = apiHandler(async (req, { params, supabase, employeeId }) => 
             .select('mobile')
             .eq('id', conv.contact_id)
             .single()
+
+          console.log('WhatsApp outbound: contact lookup:', { contact_id: conv.contact_id, mobile: contact?.mobile })
 
           if (contact?.mobile) {
             const recipientPhone = contact.mobile.replace(/\D/g, '')
@@ -115,6 +123,8 @@ export const POST = apiHandler(async (req, { params, supabase, employeeId }) => 
                 filename: attachment.name,
               })
             }
+
+            console.log('WhatsApp outbound result:', { waResponse: JSON.stringify(waResponse) })
 
             // Store WhatsApp message ID in message metadata for delivery tracking
             if (waResponse?.messages?.[0]?.id) {
