@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { toast } from 'sonner'
-import { ArrowLeft, Phone, Trash2, Star, Unplug, RefreshCw, Loader2, Plus, ExternalLink } from 'lucide-react'
+import { ArrowLeft, Phone, Trash2, Star, Unplug, RefreshCw, Loader2, Plus, CheckCircle2, XCircle, Copy } from 'lucide-react'
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/table'
 import {
   useWhatsAppAccounts,
+  useWhatsAppSetup,
   useCreateWhatsAppAccount,
   useUpdateWhatsAppAccount,
   useDeleteWhatsAppAccount,
@@ -31,6 +32,9 @@ export default function WhatsAppSettingsPage() {
   const { data, isLoading } = useWhatsAppAccounts()
   const accounts = (data?.data as WhatsAppAccount[] | undefined) || []
 
+  const { data: setupData } = useWhatsAppSetup()
+  const setup = setupData?.data as { connected: boolean; pluginId: string | null; message?: string } | undefined
+
   const createAccount = useCreateWhatsAppAccount()
   const updateAccount = useUpdateWhatsAppAccount()
   const deleteAccount = useDeleteWhatsAppAccount()
@@ -38,8 +42,6 @@ export default function WhatsAppSettingsPage() {
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState({
     phone_number_id: '',
-    waba_id: '',
-    access_token: '',
     display_phone_number: '',
     business_name: '',
   })
@@ -47,16 +49,14 @@ export default function WhatsAppSettingsPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!form.phone_number_id || !form.waba_id || !form.access_token || !form.display_phone_number) {
-      toast.error('Please fill in all required fields')
+    if (!form.phone_number_id || !form.display_phone_number) {
+      toast.error('Please fill in Phone Number ID and Phone Number')
       return
     }
 
     createAccount.mutate(
       {
         phone_number_id: form.phone_number_id.trim(),
-        waba_id: form.waba_id.trim(),
-        access_token: form.access_token.trim(),
         display_phone_number: form.display_phone_number.trim(),
         business_name: form.business_name.trim() || undefined,
       },
@@ -64,7 +64,7 @@ export default function WhatsAppSettingsPage() {
         onSuccess: () => {
           toast.success('WhatsApp number connected!')
           setShowForm(false)
-          setForm({ phone_number_id: '', waba_id: '', access_token: '', display_phone_number: '', business_name: '' })
+          setForm({ phone_number_id: '', display_phone_number: '', business_name: '' })
         },
         onError: (err) => {
           const msg = (err as Error).message || 'Failed to save account'
@@ -112,6 +112,15 @@ export default function WhatsAppSettingsPage() {
     })
   }
 
+  const webhookUrl = typeof window !== 'undefined'
+    ? `${window.location.origin}/api/v1/webhooks/whatsapp`
+    : 'https://your-domain.com/api/v1/webhooks/whatsapp'
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text)
+    toast.success('Copied to clipboard')
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -123,7 +132,7 @@ export default function WhatsAppSettingsPage() {
         </Link>
         <div className="flex-1">
           <h1 className="text-2xl font-bold tracking-tight">WhatsApp Business</h1>
-          <p className="text-muted-foreground text-sm">Connect and manage WhatsApp Business numbers</p>
+          <p className="text-muted-foreground text-sm">Manage WhatsApp via ChakraHQ coexistence</p>
         </div>
         {!showForm && (
           <Button onClick={() => setShowForm(true)}>
@@ -133,77 +142,90 @@ export default function WhatsAppSettingsPage() {
         )}
       </div>
 
+      {/* Connection Status */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            ChakraHQ Connection
+            {setup?.connected ? (
+              <Badge variant="default" className="bg-green-600">
+                <CheckCircle2 className="h-3 w-3 mr-1" />
+                Connected
+              </Badge>
+            ) : (
+              <Badge variant="secondary">
+                <XCircle className="h-3 w-3 mr-1" />
+                Not Configured
+              </Badge>
+            )}
+          </CardTitle>
+          <CardDescription>
+            WhatsApp coexistence powered by ChakraHQ pass-through API
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {setup?.connected ? (
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-muted-foreground">Plugin ID</p>
+                <p className="text-sm font-mono">{setup.pluginId}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-muted-foreground">Status</p>
+                <p className="text-sm text-green-600 dark:text-green-400">Active &mdash; API credentials configured</p>
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Set <code className="bg-muted px-1.5 py-0.5 rounded text-xs">CHAKRA_PLUGIN_ID</code> and{' '}
+              <code className="bg-muted px-1.5 py-0.5 rounded text-xs">CHAKRA_ACCESS_TOKEN</code> environment variables to connect.
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Add Number Form */}
       {showForm && (
         <Card>
           <CardHeader>
-            <CardTitle>Connect WhatsApp Number</CardTitle>
+            <CardTitle>Add WhatsApp Number</CardTitle>
             <CardDescription>
-              Enter credentials from your{' '}
-              <a
-                href="https://developers.facebook.com/apps/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-primary underline underline-offset-4 inline-flex items-center gap-1"
-              >
-                Meta App Dashboard <ExternalLink className="h-3 w-3" />
-              </a>
+              Find these in your ChakraHQ WhatsApp Setup page. Click the gear icon next to &ldquo;WhatsApp Phone Numbers&rdquo; to see the Meta Phone Number ID.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="phone_number_id">Phone Number ID *</Label>
+                  <Label htmlFor="phone_number_id">Phone Number ID (Meta) *</Label>
                   <Input
                     id="phone_number_id"
                     placeholder="e.g. 123456789012345"
                     value={form.phone_number_id}
                     onChange={(e) => setForm((f) => ({ ...f, phone_number_id: e.target.value }))}
                   />
-                  <p className="text-xs text-muted-foreground">WhatsApp &gt; API Setup &gt; Phone number ID</p>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="waba_id">WABA ID *</Label>
-                  <Input
-                    id="waba_id"
-                    placeholder="e.g. 109876543210123"
-                    value={form.waba_id}
-                    onChange={(e) => setForm((f) => ({ ...f, waba_id: e.target.value }))}
-                  />
-                  <p className="text-xs text-muted-foreground">WhatsApp &gt; API Setup &gt; WhatsApp Business Account ID</p>
+                  <p className="text-xs text-muted-foreground">
+                    ChakraHQ &gt; WhatsApp Setup &gt; Gear icon &gt; Meta ID column
+                  </p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="display_phone_number">Phone Number *</Label>
                   <Input
                     id="display_phone_number"
-                    placeholder="e.g. +91 98765 43210"
+                    placeholder="e.g. +91 78887 80264"
                     value={form.display_phone_number}
                     onChange={(e) => setForm((f) => ({ ...f, display_phone_number: e.target.value }))}
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="business_name">Business Name</Label>
-                  <Input
-                    id="business_name"
-                    placeholder="e.g. Remote Munshi"
-                    value={form.business_name}
-                    onChange={(e) => setForm((f) => ({ ...f, business_name: e.target.value }))}
-                  />
-                </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="access_token">Permanent Access Token *</Label>
+                <Label htmlFor="business_name">Business Name</Label>
                 <Input
-                  id="access_token"
-                  type="password"
-                  placeholder="System user access token"
-                  value={form.access_token}
-                  onChange={(e) => setForm((f) => ({ ...f, access_token: e.target.value }))}
+                  id="business_name"
+                  placeholder="e.g. Remote Munshi"
+                  value={form.business_name}
+                  onChange={(e) => setForm((f) => ({ ...f, business_name: e.target.value }))}
                 />
-                <p className="text-xs text-muted-foreground">
-                  Business Settings &gt; System Users &gt; Generate Token (with whatsapp_business_messaging + whatsapp_business_management permissions)
-                </p>
               </div>
               <div className="flex gap-2">
                 <Button type="submit" disabled={createAccount.isPending}>
@@ -241,7 +263,7 @@ export default function WhatsAppSettingsPage() {
               <Phone className="h-12 w-12 mx-auto mb-3 opacity-30" />
               <p>No WhatsApp numbers connected.</p>
               <p className="text-sm mt-1">
-                Click &ldquo;Add Number&rdquo; to connect your WhatsApp Business number.
+                Click &ldquo;Add Number&rdquo; to register your WhatsApp Business number.
               </p>
             </div>
           ) : (
@@ -250,6 +272,7 @@ export default function WhatsAppSettingsPage() {
                 <TableRow>
                   <TableHead>Phone Number</TableHead>
                   <TableHead>Business Name</TableHead>
+                  <TableHead>Phone Number ID</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Default</TableHead>
                   <TableHead className="w-[140px]">Actions</TableHead>
@@ -263,6 +286,9 @@ export default function WhatsAppSettingsPage() {
                     </TableCell>
                     <TableCell className="text-muted-foreground">
                       {account.business_name || '—'}
+                    </TableCell>
+                    <TableCell className="font-mono text-xs text-muted-foreground">
+                      {account.phone_number_id}
                     </TableCell>
                     <TableCell>
                       <Badge variant={account.status === 'active' ? 'default' : 'secondary'}>
@@ -326,27 +352,40 @@ export default function WhatsAppSettingsPage() {
         </CardContent>
       </Card>
 
-      {/* Webhook Info */}
+      {/* Webhook Configuration */}
       <Card>
         <CardHeader>
           <CardTitle>Webhook Configuration</CardTitle>
-          <CardDescription>Configure this in your Meta App Dashboard</CardDescription>
+          <CardDescription>
+            Configure this in your ChakraHQ WhatsApp Setup &gt; More tab &gt; &ldquo;Pass-through webhook URL for Meta events&rdquo;
+          </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="space-y-1">
-            <p className="text-sm font-medium">Callback URL</p>
-            <code className="block text-sm bg-muted px-3 py-2 rounded-md">
-              {typeof window !== 'undefined' ? window.location.origin : 'https://your-domain.com'}
-              /api/v1/webhooks/whatsapp
-            </code>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <p className="text-sm font-medium">Webhook URL</p>
+            <div className="flex items-center gap-2">
+              <code className="flex-1 text-sm bg-muted px-3 py-2 rounded-md break-all">
+                {webhookUrl}
+              </code>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => copyToClipboard(webhookUrl)}
+                title="Copy"
+              >
+                <Copy className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
-          <div className="space-y-1">
-            <p className="text-sm font-medium">Subscribed Fields</p>
-            <p className="text-sm text-muted-foreground">messages</p>
+          <div className="rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950 p-3">
+            <p className="text-sm font-medium text-amber-800 dark:text-amber-200">Setup Steps</p>
+            <ol className="text-sm text-amber-700 dark:text-amber-300 mt-1 space-y-1 list-decimal list-inside">
+              <li>Open ChakraHQ &gt; WhatsApp Setup &gt; <strong>More</strong> tab</li>
+              <li>Paste the URL above into &ldquo;Pass-through webhook URL for Meta events&rdquo;</li>
+              <li>Click <strong>Save</strong> (top right)</li>
+              <li>Messages sent to your WhatsApp number will now appear in OmniDesk</li>
+            </ol>
           </div>
-          <p className="text-xs text-muted-foreground">
-            The Verify Token is configured server-side via the <code>WHATSAPP_WEBHOOK_VERIFY_TOKEN</code> env var.
-          </p>
         </CardContent>
       </Card>
     </div>

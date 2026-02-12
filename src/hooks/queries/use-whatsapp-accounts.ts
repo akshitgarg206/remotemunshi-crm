@@ -15,10 +15,24 @@ export interface WhatsAppAccount {
   created_at: string
 }
 
+export interface WhatsAppSetupStatus {
+  connected: boolean
+  pluginId: string | null
+  phoneNumbers: { phoneNumberId: string; displayNumber: string; verifiedName: string }[]
+  message?: string
+}
+
 export function useWhatsAppAccounts() {
   return useQuery({
     queryKey: ['whatsapp-accounts'],
     queryFn: () => apiFetch<WhatsAppAccount[]>('/api/v1/whatsapp/accounts'),
+  })
+}
+
+export function useWhatsAppSetup() {
+  return useQuery({
+    queryKey: ['whatsapp-setup'],
+    queryFn: () => apiFetch<WhatsAppSetupStatus>('/api/v1/whatsapp/setup'),
   })
 }
 
@@ -27,8 +41,6 @@ export function useCreateWhatsAppAccount() {
   return useMutation({
     mutationFn: (data: {
       phone_number_id: string
-      waba_id: string
-      access_token: string
       display_phone_number: string
       business_name?: string
     }) => apiFetch('/api/v1/whatsapp/accounts', { method: 'POST', body: JSON.stringify(data) }),
@@ -51,12 +63,5 @@ export function useDeleteWhatsAppAccount() {
     mutationFn: (id: string) =>
       apiFetch(`/api/v1/whatsapp/accounts/${id}`, { method: 'DELETE' }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['whatsapp-accounts'] }),
-  })
-}
-
-export function useExchangeWhatsAppToken() {
-  return useMutation({
-    mutationFn: (data: { code: string; phone_number_id: string; waba_id: string }) =>
-      apiFetch('/api/v1/whatsapp/token-exchange', { method: 'POST', body: JSON.stringify(data) }),
   })
 }

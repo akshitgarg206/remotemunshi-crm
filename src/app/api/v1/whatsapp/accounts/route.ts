@@ -15,24 +15,30 @@ export const GET = apiHandler(async (req, { supabase }) => {
 export const POST = apiHandler(async (req, { supabase, employeeId }) => {
   const body = await req.json()
 
-  const { phone_number_id, waba_id, access_token, display_phone_number, business_name } = body
+  const { phone_number_id, display_phone_number, business_name } = body
 
-  if (!phone_number_id || !waba_id || !access_token || !display_phone_number) {
+  if (!phone_number_id || !display_phone_number) {
     return NextResponse.json(
-      { success: false, error: { code: 'VALIDATION_ERROR', message: 'Missing required fields' } },
+      { success: false, error: { code: 'VALIDATION_ERROR', message: 'Phone Number ID and display phone number are required' } },
       { status: 400 }
     )
   }
 
+  // Access token is now managed via env vars (CHAKRA_ACCESS_TOKEN)
+  // Store a placeholder or the ChakraHQ token reference
   const { data, error } = await supabase
     .from('whatsapp_accounts')
     .insert({
-      phone_number_id,
-      waba_id,
-      access_token,
-      display_phone_number,
-      business_name: business_name || null,
+      phone_number_id: phone_number_id.trim(),
+      waba_id: body.waba_id?.trim() || 'chakrahq',
+      access_token: 'chakrahq_env',
+      display_phone_number: display_phone_number.trim(),
+      business_name: business_name?.trim() || null,
       created_by: employeeId,
+      metadata: {
+        provider: 'chakrahq',
+        plugin_id: process.env.CHAKRA_PLUGIN_ID || null,
+      },
     })
     .select('id, phone_number_id, waba_id, display_phone_number, business_name, status, is_default, created_at')
     .single()

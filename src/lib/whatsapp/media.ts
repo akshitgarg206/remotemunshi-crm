@@ -1,5 +1,6 @@
 /**
  * WhatsApp media download → Supabase Storage upload
+ * Uses ChakraHQ pass-through for media access
  */
 
 import { SupabaseClient } from '@supabase/supabase-js'
@@ -25,13 +26,12 @@ const MIME_TO_EXT: Record<string, string> = {
 export async function downloadAndUploadMedia(params: {
   supabase: SupabaseClient
   mediaId: string
-  accessToken: string
   conversationId: string
 }): Promise<{ url: string; mimeType: string; size: number }> {
-  const { supabase, mediaId, accessToken, conversationId } = params
+  const { supabase, mediaId, conversationId } = params
 
-  // Download from WhatsApp
-  const { buffer, mimeType } = await downloadMedia({ mediaId, accessToken })
+  // Download from WhatsApp via ChakraHQ pass-through
+  const { buffer, mimeType } = await downloadMedia({ mediaId })
 
   // Determine file extension
   const ext = MIME_TO_EXT[mimeType] || 'bin'

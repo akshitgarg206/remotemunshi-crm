@@ -82,14 +82,6 @@ export const POST = apiHandler(async (req, { params, supabase, employeeId }) => 
         const phoneNumberId = convMeta.phone_number_id
 
         if (phoneNumberId) {
-          // Get access token
-          const { data: waAccount } = await supabase
-            .from('whatsapp_accounts')
-            .select('access_token')
-            .eq('phone_number_id', phoneNumberId)
-            .eq('status', 'active')
-            .single()
-
           // Get recipient phone from contact
           const { data: contact } = await supabase
             .from('contacts')
@@ -97,14 +89,13 @@ export const POST = apiHandler(async (req, { params, supabase, employeeId }) => 
             .eq('id', conv.contact_id)
             .single()
 
-          if (waAccount?.access_token && contact?.mobile) {
+          if (contact?.mobile) {
             const recipientPhone = contact.mobile.replace(/\D/g, '')
 
             let waResponse
             if (validated.message_type === 'text' || !validated.attachments?.length) {
               waResponse = await sendTextMessage({
                 phoneNumberId,
-                accessToken: waAccount.access_token,
                 to: recipientPhone,
                 body: validated.content,
               })
@@ -117,7 +108,6 @@ export const POST = apiHandler(async (req, { params, supabase, employeeId }) => 
 
               waResponse = await sendMediaMessage({
                 phoneNumberId,
-                accessToken: waAccount.access_token,
                 to: recipientPhone,
                 type: mediaType,
                 mediaUrl: attachment.url,

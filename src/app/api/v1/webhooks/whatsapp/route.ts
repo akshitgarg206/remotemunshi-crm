@@ -3,7 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { processInboundMessage, processStatusUpdate, type WebhookPayload } from '@/lib/whatsapp/process-inbound'
 
 /**
- * GET — Webhook verification (Meta sends this when you register the webhook URL)
+ * GET — Webhook verification (Meta/ChakraHQ sends this when you register the webhook URL)
  */
 export async function GET(req: NextRequest) {
   const searchParams = req.nextUrl.searchParams
@@ -21,20 +21,22 @@ export async function GET(req: NextRequest) {
 }
 
 /**
- * POST — Incoming messages and status updates from WhatsApp
- * Always return 200 to prevent Meta retries.
- * Signature verification via X-Hub-Signature-256.
+ * POST — Incoming messages and status updates from WhatsApp via ChakraHQ pass-through
+ * Always return 200 to prevent retries.
  */
 export async function POST(req: NextRequest) {
-  // Always return 200 — even on processing errors (Meta retries on non-200)
   try {
-    // Verify HMAC signature
-    const signature = req.headers.get('x-hub-signature-256')
     const rawBody = await req.text()
 
-    if (!verifySignature(rawBody, signature)) {
-      console.error('WhatsApp webhook: invalid signature')
-      return NextResponse.json({ status: 'ok' }, { status: 200 })
+    // Verify signature if META_APP_SECRET is configured (direct Meta webhook)
+    // ChakraHQ pass-through may not include Meta's HMAC — accept gracefully
+    const signature = req.headers.get('x-hub-signature-256')
+    const appSecret = process.env.META_APP_SECRET
+    if (signature && appSecret) {
+      if (!verifySignature(rawBody, signature, appSecret)) {
+        console.error('WhatsApp webhook: invalid signature')
+        return NextResponse.json({ status: 'ok' }, { status: 200 })
+      }
     }
 
     const payload: WebhookPayload = JSON.parse(rawBody)
@@ -56,29 +58,22 @@ export async function POST(req: NextRequest) {
 }
 
 /**
- * Verify X-Hub-Signature-256 using META_APP_SECRET
+ * Verify X-Hub-Signature-256 (optional — only when Meta secret is configured)
  */
-function verifySignature(rawBody: string, signature: string | null): boolean {
-  if (!signature) return false
+function verifySignature(rawBody: string, signature: string, appSecret: string): boolean {
+  try {
+    const crypto = require('crypto')
+    const expectedSignature =
+      'sha256=' +
+      crypto.createHmac('sha256', appSecret).update(rawBody).digest('hex')
 
-  const appSecret = process.env.META_APP_SECRET
-  if (!appSecret) {
-    console.error('META_APP_SECRET not configured')
+    return crypto.timingSafeEqual(
+      Buffer.from(signature),
+      Buffer.from(expectedSignature)
+    )
+  } catch {
     return false
   }
-
-  // Use Web Crypto API (Edge-compatible)
-  // For serverless: we do sync HMAC comparison
-  // Note: crypto.subtle is async but we need sync here — use createHmac
-  const crypto = require('crypto')
-  const expectedSignature =
-    'sha256=' +
-    crypto.createHmac('sha256', appSecret).update(rawBody).digest('hex')
-
-  return crypto.timingSafeEqual(
-    Buffer.from(signature),
-    Buffer.from(expectedSignature)
-  )
 }
 
 /**
@@ -95,19 +90,6 @@ async function processWebhookAsync(payload: WebhookPayload): Promise<void> {
       const phoneNumberId = metadata.phone_number_id
       const displayPhoneNumber = metadata.display_phone_number
 
-      // Look up access token for this phone number
-      const { data: account } = await supabase
-        .from('whatsapp_accounts')
-        .select('access_token')
-        .eq('phone_number_id', phoneNumberId)
-        .eq('status', 'active')
-        .single()
-
-      if (!account) {
-        console.error(`No active WhatsApp account for phone_number_id: ${phoneNumberId}`)
-        continue
-      }
-
       // Process incoming messages
       if (messages && contacts) {
         for (const msg of messages) {
@@ -121,7 +103,6 @@ async function processWebhookAsync(payload: WebhookPayload): Promise<void> {
               contact,
               phoneNumberId,
               displayPhoneNumber,
-              accessToken: account.access_token,
             })
           } catch (err) {
             console.error('Failed to process inbound message:', err)

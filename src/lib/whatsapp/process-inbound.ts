@@ -139,9 +139,8 @@ export async function processInboundMessage(params: {
   contact: WhatsAppContact
   phoneNumberId: string
   displayPhoneNumber: string
-  accessToken: string
 }): Promise<void> {
-  const { supabase, message, contact, phoneNumberId, displayPhoneNumber, accessToken } = params
+  const { supabase, message, contact, phoneNumberId, displayPhoneNumber } = params
   const senderPhone = normalizePhone(contact.wa_id)
   const senderName = contact.profile.name
 
@@ -168,7 +167,6 @@ export async function processInboundMessage(params: {
         const uploaded = await downloadAndUploadMedia({
           supabase,
           mediaId: mediaData.id,
-          accessToken,
           conversationId: conversation.id,
         })
         attachments.push({
