@@ -1,41 +1,38 @@
 # Implicit Context
 
-> **RESUME BRIEF:** WhatsApp Business API integration fully implemented and deployed. 13 files created/modified across 6 phases: DB migration 00026 (whatsapp_accounts), Cloud API client, inbound processor + media handler, webhook endpoint (HMAC verified), outbound sending on messages route, delivery receipts, Settings page (Embedded Signup UI), React Query hooks, 3 API routes. Env vars set on Vercel (META_APP_ID, META_APP_SECRET, WHATSAPP_WEBHOOK_VERIFY_TOKEN=remotemunshi_akshit206). Webhook subscribed to `messages` in Meta dashboard. `attachments` storage bucket created in Supabase with RLS. Build fix: replaced missing AlertDialog with confirm(). User still needs to connect WhatsApp numbers via Embedded Signup flow. Supabase project ID: `atsemlszcgcojdoqjplt`. IMPORTANT: always push to both `main` AND `master` (`git push origin main && git push origin main:master`).
+> **RESUME BRIEF:** WhatsApp integration DONE — switched to ChakraHQ (not AiSensy). ChakraHQ provides pass-through to Meta Cloud API at `api.chakrahq.com/v1/ext/plugin/whatsapp/{pluginId}/api/v21.0/`. Auth via `CHAKRA_ACCESS_TOKEN` env var. Plugin ID: `fd628b49-97c2-44ce-8fde-e5688503087f`. Phone: `+91 78887 80264`. PENDING: User needs to (1) set env vars on Vercel, (2) get Meta Phone Number ID from ChakraHQ dashboard, (3) add number via Settings > WhatsApp page, (4) configure webhook URL in ChakraHQ. Supabase project ID: `atsemlszcgcojdoqjplt`. IMPORTANT: always push to both `main` AND `master`.
 
-**Last Updated:** 2026-02-09
+**Last Updated:** 2026-02-12
 
 ---
 
 ## Current Session
 
 ### Active Work
-- **Task:** WhatsApp Business API Integration — COMPLETE + DEPLOYED
-- **Approach:** 6-phase implementation: DB migration, Settings page, Webhook endpoint, Inbound processing, Outbound sending, Delivery receipts
-- **Files created:** supabase/migrations/00026_whatsapp_accounts.sql, src/lib/whatsapp/client.ts, src/lib/whatsapp/media.ts, src/lib/whatsapp/process-inbound.ts, src/app/api/v1/webhooks/whatsapp/route.ts, src/app/api/v1/whatsapp/accounts/route.ts, src/app/api/v1/whatsapp/accounts/[id]/route.ts, src/app/api/v1/whatsapp/token-exchange/route.ts, src/hooks/queries/use-whatsapp-accounts.ts, src/app/(app)/settings/whatsapp/page.tsx
-- **Files modified:** src/app/(app)/settings/page.tsx (added WhatsApp to Integration group), src/app/api/v1/support/conversations/[id]/messages/route.ts (outbound WhatsApp sending), .env.example (3 new vars)
+- **Task:** WhatsApp ChakraHQ Integration — CODE COMPLETE, pending env vars + setup
+- **Status:** All code updated for ChakraHQ pass-through. Build passes. Committed + pushed. Need user to set Vercel env vars and configure webhook in ChakraHQ.
+- **Key files:** src/lib/whatsapp/client.ts (ChakraHQ pass-through), src/app/(app)/settings/whatsapp/page.tsx, src/app/api/v1/webhooks/whatsapp/route.ts, src/app/api/v1/whatsapp/setup/route.ts (new)
 
 ### Decisions Made (with reasoning)
 | Decision | Why | Alternatives Rejected |
 |----------|-----|----------------------|
-| GitHub + Vercel for deployment | Auto-deploys on push, preview URLs for branches/PRs, better long-term workflow | Vercel CLI-only (requires manual `npx vercel` each time) |
-| GitHub repo: `akshitgarg206/remotemunshi-crm` | User's chosen repo name and account | — |
-| Force-push main→master for production | Vercel production branch is `master`, CRM code is on `main`, no common ancestor | Change Vercel production branch setting (user would need dashboard access) |
-| Mumbai (bom1) function region | Users in India, default iad1 adds 200-300ms latency | — |
-| Native confirm() for delete dialog | Project doesn't have @/components/ui/alert-dialog component | AlertDialog from shadcn/ui (would need to add the component) |
-| HMAC signature verification via crypto.createHmac | Secure webhook validation per Meta requirements | No verification (insecure) |
-| createAdminClient() for webhook processing | Webhook is a public endpoint with no auth session — needs service_role to write to DB | createServerSupabaseClient (requires auth session) |
+| ChakraHQ as BSP for coexistence | User needs same number on WhatsApp Business App + Cloud API. ChakraHQ provides pass-through API (same Meta format, different base URL). Originally planned AiSensy, switched to ChakraHQ | AiSensy (meeting didn't work out), Direct Cloud API (no coexistence), Wati (expensive) |
+| ChakraHQ pass-through instead of proprietary API | ChakraHQ wraps Meta's Cloud API — same request body format, just proxied through their servers. Minimal code changes needed vs building for proprietary API | Full ChakraHQ native API, Direct Meta Cloud API |
+| Auth via env vars instead of per-account DB tokens | Single ChakraHQ account for the whole CRM. Simpler, more secure. access_token field in whatsapp_accounts stores 'chakrahq_env' placeholder | Per-account tokens in DB (old approach for direct Meta API) |
+| Native confirm() for delete dialog | Project doesn't have @/components/ui/alert-dialog component | AlertDialog from shadcn/ui |
 
 ### Failed Attempts (DO NOT REPEAT THESE)
 | What I Tried | Why It Failed | What To Do Instead |
 |-------------|--------------|-------------------|
-| Previous sessions wrote entire app (70+ features) but never git committed | Context cleared → all code lost. bigger_picture.md claimed features existed but repo only had 2-file scaffold | ALWAYS commit + push after writing code. Added mandatory rules to CLAUDE.md DURING WORK and BEFORE CONTEXT CLEAR sections |
-| Used AlertDialog component in WhatsApp settings page | @/components/ui/alert-dialog doesn't exist in the project — build failed on Vercel | Use native confirm() like departments page does |
-| User tried to add phone number via Meta Dev Portal "Add Phone Number" | Shows "phone already registered" error — that's the old migration flow | Use Embedded Signup flow instead (CRM's "Connect WhatsApp" button) for coexistence mode |
+| Previous sessions wrote entire app (70+ features) but never git committed | Context cleared → all code lost | ALWAYS commit + push after writing code |
+| Used AlertDialog component in WhatsApp settings page | @/components/ui/alert-dialog doesn't exist in the project | Use native confirm() |
+| Embedded Signup SDK with FB.login + config_id | User's Meta app only shows General/Conversions API/Instagram Graph login variations — no "WhatsApp Embedded Signup" option (Tech Provider only) | Use BSP (AiSensy) for coexistence, manual credential entry for settings page |
+| Tried to use Cloud API only (Option A) | User needs chat history, groups, and calls — Cloud API doesn't support any of these | Must use coexistence via BSP |
 
-### Open Questions (need human input)
-- User needs to connect WhatsApp numbers via Embedded Signup — coexistence mode may require latest WhatsApp Business App version on phone
-- Webhook URL: `https://remotemunshi-crm-akshitgarg206s-projects.vercel.app/api/v1/webhooks/whatsapp`
-- Verify token: `remotemunshi_akshit206`
+### Open Questions
+- What is the Meta Phone Number ID for +91 78887 80264? (User needs to find in ChakraHQ > WhatsApp Setup > Gear icon > Meta ID column)
+- Has the webhook URL been configured in ChakraHQ? (ChakraHQ > WhatsApp Setup > More tab > pass-through webhook URL)
+- Have Vercel env vars been set? (CHAKRA_PLUGIN_ID, CHAKRA_ACCESS_TOKEN, CHAKRA_REFRESH_TOKEN, WHATSAPP_WEBHOOK_VERIFY_TOKEN)
 
 ---
 

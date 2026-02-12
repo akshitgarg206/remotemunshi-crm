@@ -2,11 +2,11 @@
 
 > **ACTIVE GOAL:** Build Remote Munshi CRM — full Turia clone with REST API + webhooks (Next.js 16 + Supabase)
 >
-> **STATUS:** WhatsApp Business API Integration COMPLETE + DEPLOYED
+> **STATUS:** WhatsApp integration switched from direct Meta Cloud API to ChakraHQ pass-through
 >
-> **NEXT STEP:** User needs to connect WhatsApp numbers via Embedded Signup (Settings > WhatsApp Business). Coexistence mode requires going through the Embedded Signup popup (not the Dev Portal "Add Phone Number"). Then test inbound/outbound messaging end-to-end.
+> **NEXT STEP:** Set Vercel env vars (CHAKRA_PLUGIN_ID, CHAKRA_ACCESS_TOKEN, CHAKRA_REFRESH_TOKEN, WHATSAPP_WEBHOOK_VERIFY_TOKEN). Then: get Meta Phone Number ID from ChakraHQ dashboard, add number via Settings > WhatsApp, configure webhook URL in ChakraHQ.
 
-**Last Updated:** 2026-02-10
+**Last Updated:** 2026-02-12
 
 ---
 
@@ -126,6 +126,12 @@
 | 2026-02-09 | RBAC testing across hierarchy | Verified 5 roles: Super Admin (full), IT Admin (full), Manager (no Settings), Associate (no Settings), Article Assistant (Team only). 14 test accounts created for all levels. |
 | 2026-02-10 | Button testing + Select.Item fixes | Playwright tested 23 routes. Fixed Select.Item empty-value crashes on compliance-matrix (status filter), compliance-tracker (type+status filters), services (frequency selector). All use __all__/__none__ sentinels. |
 | 2026-02-10 | WhatsApp Business API Integration | Migration 00026 (whatsapp_accounts), Cloud API client (send/receive/media), webhook endpoint (HMAC verify), inbound processor (contact auto-create, conversation upsert, media→Storage), outbound sending on messages route, delivery receipts, Settings page (Embedded Signup + account list), React Query hooks, 3 new env vars |
+| 2026-02-11 | Fix 9 dead-end buttons | 4 list pages (team, DSC, license, notice) get add dialogs. 7 detail pages (team, bundles, DSC, license, notice, client, task) get edit dialogs. No new routes — all dialogs inline with useMutation. 11 files changed, 1343 insertions. |
+| 2026-02-11 | Revamp services UX | Removed pricing/SAC (CRM not accounting). Added association tabs (clients/tasks/templates/bundles) on detail page. Added filter pills on list page. Moved edit/delete to detail only. New associations API + RPC for counts. |
+| 2026-02-11 | Task time tracking | Changed estimated hours to h+m inputs (add+edit pages). Added per-step estimated_minutes/actual_minutes with inline editing. Step time totals in checklist header. Migration 00028 + checklist API time update support. |
+| 2026-02-11 | Fix service associations | Wrong column names in API (name→business_name, title→task_name, code→client_code). Supabase queries silently returned null. |
+| 2026-02-11 | Task dates + step owner | Migration 00029: target_date on tasks, owner_type on checklist items, target_days_before_due on templates. start_date/target_date/due_date on add+detail pages. Step owner toggle (Team/Client pill) on add+detail. Overdue highlighting: amber for target, red for due. |
+| 2026-02-12 | WhatsApp → ChakraHQ integration | Switched from direct Meta Cloud API to ChakraHQ pass-through. client.ts routes through api.chakrahq.com, auth via env vars, flexible webhook HMAC, ChakraHQ status card + webhook setup on Settings page, sendTemplateMessage added, deprecated token-exchange. 11 files changed. |
 
 ### Upcoming
 | Item | Priority | Depends On |
