@@ -6,6 +6,7 @@ export const createConversationSchema = z.object({
   channel: z.enum(['whatsapp', 'email', 'phone', 'in_person', 'sms']).default('whatsapp'),
   subject: z.string().optional(),
   assigned_employee_id: z.string().uuid().optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
 })
 
 export const updateConversationSchema = z.object({

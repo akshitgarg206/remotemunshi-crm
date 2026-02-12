@@ -18,6 +18,7 @@ import { useOmnideskStore } from '@/stores/omnidesk-store'
 import { useTicketKpi } from '@/hooks/queries/use-support-tickets'
 import { useCreateConversation } from '@/hooks/queries/use-support-conversations'
 import { useConversation } from '@/hooks/queries/use-support-conversations'
+import { useWhatsAppAccounts, type WhatsAppAccount } from '@/hooks/queries/use-whatsapp-accounts'
 import { toast } from 'sonner'
 
 export default function SupportPage() {
@@ -38,17 +39,40 @@ export default function SupportPage() {
   const [newConvOpen, setNewConvOpen] = useState(false)
   const [newConvChannel, setNewConvChannel] = useState('whatsapp')
   const [newConvSubject, setNewConvSubject] = useState('')
+  const [newConvPhoneNumberId, setNewConvPhoneNumberId] = useState('')
   const createConversation = useCreateConversation()
 
+  // WhatsApp accounts for number selector
+  const { data: waAccountsData } = useWhatsAppAccounts()
+  const waAccounts = ((waAccountsData?.data as WhatsAppAccount[] | undefined) || []).filter(a => a.status === 'active')
+
+  // Auto-select default or first account
+  const defaultWaAccount = waAccounts.find(a => a.is_default) || waAccounts[0]
+
   const handleNewConversation = () => {
+    // For WhatsApp, require a phone number selection
+    const selectedPhoneId = newConvPhoneNumberId || defaultWaAccount?.phone_number_id
+    if (newConvChannel === 'whatsapp' && !selectedPhoneId) {
+      toast.error('No WhatsApp number available. Add one in Settings > WhatsApp.')
+      return
+    }
+
+    const metadata = newConvChannel === 'whatsapp' && selectedPhoneId
+      ? {
+          phone_number_id: selectedPhoneId,
+          display_phone_number: waAccounts.find(a => a.phone_number_id === selectedPhoneId)?.display_phone_number || '',
+        }
+      : undefined
+
     createConversation.mutate(
-      { channel: newConvChannel, subject: newConvSubject || undefined },
+      { channel: newConvChannel, subject: newConvSubject || undefined, metadata },
       {
         onSuccess: (data) => {
           const id = (data as { data?: { id?: string } })?.data?.id
           if (id) setActiveConversationId(id)
           setNewConvOpen(false)
           setNewConvSubject('')
+          setNewConvPhoneNumberId('')
           toast.success('Conversation created')
         },
         onError: (err) => toast.error(err.message),
@@ -169,6 +193,32 @@ export default function SupportPage() {
                 </SelectContent>
               </Select>
             </div>
+            {newConvChannel === 'whatsapp' && waAccounts.length > 0 && (
+              <div className="space-y-2">
+                <Label>WhatsApp Number</Label>
+                <Select
+                  value={newConvPhoneNumberId || defaultWaAccount?.phone_number_id || ''}
+                  onValueChange={setNewConvPhoneNumberId}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select number..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {waAccounts.map((acct) => {
+                      const provider = (acct.metadata?.provider as string) || 'chakrahq'
+                      return (
+                        <SelectItem key={acct.id} value={acct.phone_number_id}>
+                          {acct.display_phone_number}
+                          {acct.business_name ? ` (${acct.business_name})` : ''}
+                          {' '}&mdash; {provider === 'ycloud' ? 'YCloud' : 'ChakraHQ'}
+                          {acct.is_default ? ' [Default]' : ''}
+                        </SelectItem>
+                      )
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div className="space-y-2">
               <Label>Subject (optional)</Label>
               <Input
