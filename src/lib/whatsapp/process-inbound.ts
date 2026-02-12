@@ -270,7 +270,7 @@ async function findContactByPhone(supabase: SupabaseClient, phone: string) {
     .or(`mobile.eq.${phone},mobile.eq.+${phone},mobile.eq.${phone.replace(/^91/, '')}`)
     .is('deleted_at', null)
     .limit(1)
-    .single()
+    .maybeSingle()
 
   return data
 }
@@ -281,7 +281,7 @@ async function createContact(supabase: SupabaseClient, name: string, phone: stri
     .insert({
       name,
       mobile: phone,
-      metadata: { source: 'whatsapp_auto' },
+      notes: 'Auto-created from WhatsApp',
     })
     .select('id, name, email, mobile')
     .single()
@@ -301,7 +301,7 @@ async function findOpenConversation(supabase: SupabaseClient, contactId: string,
     .is('deleted_at', null)
     .order('last_message_at', { ascending: false })
     .limit(1)
-    .single()
+    .maybeSingle()
 
   return data
 }
