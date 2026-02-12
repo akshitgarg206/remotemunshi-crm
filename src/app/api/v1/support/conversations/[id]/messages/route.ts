@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { apiHandler } from '@/lib/api/handler'
 import { parsePagination, paginationMeta } from '@/lib/api/pagination'
 import { createMessageSchema } from '@/lib/validators/support-messages'
-import { sendTextMessage, sendMediaMessage } from '@/lib/whatsapp/client'
+import { sendTextMessageForConversation, sendMediaMessageForConversation } from '@/lib/whatsapp/client'
 
 export const GET = apiHandler(async (req, { params, supabase }) => {
   const { page, pageSize, offset } = parsePagination(req, { defaultPageSize: 50 })
@@ -102,7 +102,8 @@ export const POST = apiHandler(async (req, { params, supabase, employeeId }) => 
 
             let waResponse
             if (validated.message_type === 'text' || !validated.attachments?.length) {
-              waResponse = await sendTextMessage({
+              waResponse = await sendTextMessageForConversation({
+                supabase,
                 phoneNumberId,
                 to: recipientPhone,
                 body: validated.content,
@@ -114,7 +115,8 @@ export const POST = apiHandler(async (req, { params, supabase, employeeId }) => 
                 : validated.message_type === 'video' ? 'video'
                 : 'document'
 
-              waResponse = await sendMediaMessage({
+              waResponse = await sendMediaMessageForConversation({
+                supabase,
                 phoneNumberId,
                 to: recipientPhone,
                 type: mediaType,

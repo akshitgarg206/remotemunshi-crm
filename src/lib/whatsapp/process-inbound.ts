@@ -4,6 +4,7 @@
 
 import { SupabaseClient } from '@supabase/supabase-js'
 import { downloadAndUploadMedia } from './media'
+import type { WhatsAppProvider } from './client'
 
 // WhatsApp webhook payload types
 interface WhatsAppWebhookEntry {
@@ -50,6 +51,7 @@ interface WhatsAppMediaInfo {
   mime_type: string
   sha256?: string
   caption?: string
+  _ycloud_link?: string
 }
 
 interface WhatsAppStatus {
@@ -139,8 +141,9 @@ export async function processInboundMessage(params: {
   contact: WhatsAppContact
   phoneNumberId: string
   displayPhoneNumber: string
+  provider?: WhatsAppProvider
 }): Promise<void> {
-  const { supabase, message, contact, phoneNumberId, displayPhoneNumber } = params
+  const { supabase, message, contact, phoneNumberId, displayPhoneNumber, provider } = params
   const senderPhone = normalizePhone(contact.wa_id)
   const senderName = contact.profile.name
 
@@ -168,6 +171,8 @@ export async function processInboundMessage(params: {
           supabase,
           mediaId: mediaData.id,
           conversationId: conversation.id,
+          provider,
+          mediaUrl: mediaData._ycloud_link,
         })
         attachments.push({
           name: (mt === 'document' && message.document?.filename) || `${mt}.${uploaded.mimeType.split('/')[1] || 'bin'}`,

@@ -12,6 +12,13 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
   Table,
   TableBody,
   TableCell,
@@ -33,7 +40,14 @@ export default function WhatsAppSettingsPage() {
   const accounts = (data?.data as WhatsAppAccount[] | undefined) || []
 
   const { data: setupData } = useWhatsAppSetup()
-  const setup = setupData?.data as { connected: boolean; pluginId: string | null; message?: string } | undefined
+  const setup = setupData?.data as {
+    connected: boolean
+    pluginId: string | null
+    providers?: {
+      chakrahq: { connected: boolean; pluginId: string | null }
+      ycloud: { connected: boolean }
+    }
+  } | undefined
 
   const createAccount = useCreateWhatsAppAccount()
   const updateAccount = useUpdateWhatsAppAccount()
@@ -44,6 +58,7 @@ export default function WhatsAppSettingsPage() {
     phone_number_id: '',
     display_phone_number: '',
     business_name: '',
+    provider: 'ycloud' as 'chakrahq' | 'ycloud',
   })
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -59,12 +74,13 @@ export default function WhatsAppSettingsPage() {
         phone_number_id: form.phone_number_id.trim(),
         display_phone_number: form.display_phone_number.trim(),
         business_name: form.business_name.trim() || undefined,
+        provider: form.provider,
       },
       {
         onSuccess: () => {
           toast.success('WhatsApp number connected!')
           setShowForm(false)
-          setForm({ phone_number_id: '', display_phone_number: '', business_name: '' })
+          setForm({ phone_number_id: '', display_phone_number: '', business_name: '', provider: 'ycloud' })
         },
         onError: (err) => {
           const msg = (err as Error).message || 'Failed to save account'
@@ -137,14 +153,22 @@ export default function WhatsAppSettingsPage() {
     }
   }
 
-  const webhookUrl = typeof window !== 'undefined'
-    ? `${window.location.origin}/api/v1/webhooks/whatsapp`
-    : 'https://your-domain.com/api/v1/webhooks/whatsapp'
+  const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://your-domain.com'
+  const chakraWebhookUrl = `${baseUrl}/api/v1/webhooks/whatsapp`
+  const ycloudWebhookUrl = `${baseUrl}/api/v1/webhooks/ycloud`
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text)
     toast.success('Copied to clipboard')
   }
+
+  const getProviderForAccount = (account: WhatsAppAccount): string => {
+    const meta = account.metadata || {}
+    return (meta.provider as string) || 'chakrahq'
+  }
+
+  const chakraConnected = setup?.providers?.chakrahq?.connected ?? false
+  const ycloudConnected = setup?.providers?.ycloud?.connected ?? false
 
   return (
     <div className="space-y-6">
@@ -157,7 +181,7 @@ export default function WhatsAppSettingsPage() {
         </Link>
         <div className="flex-1">
           <h1 className="text-2xl font-bold tracking-tight">WhatsApp Business</h1>
-          <p className="text-muted-foreground text-sm">Manage WhatsApp via ChakraHQ coexistence</p>
+          <p className="text-muted-foreground text-sm">Multi-provider WhatsApp integration (ChakraHQ + YCloud)</p>
         </div>
         {!showForm && (
           <Button onClick={() => setShowForm(true)}>
@@ -167,47 +191,67 @@ export default function WhatsAppSettingsPage() {
         )}
       </div>
 
-      {/* Connection Status */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            ChakraHQ Connection
-            {setup?.connected ? (
-              <Badge variant="default" className="bg-green-600">
-                <CheckCircle2 className="h-3 w-3 mr-1" />
-                Connected
-              </Badge>
+      {/* Provider Connection Status */}
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              ChakraHQ
+              {chakraConnected ? (
+                <Badge variant="default" className="bg-green-600">
+                  <CheckCircle2 className="h-3 w-3 mr-1" />
+                  Connected
+                </Badge>
+              ) : (
+                <Badge variant="secondary">
+                  <XCircle className="h-3 w-3 mr-1" />
+                  Not Configured
+                </Badge>
+              )}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {chakraConnected ? (
+              <p className="text-sm text-muted-foreground">
+                Plugin ID: <span className="font-mono">{setup?.providers?.chakrahq?.pluginId}</span>
+              </p>
             ) : (
-              <Badge variant="secondary">
-                <XCircle className="h-3 w-3 mr-1" />
-                Not Configured
-              </Badge>
+              <p className="text-xs text-muted-foreground">
+                Set <code className="bg-muted px-1 py-0.5 rounded text-xs">CHAKRA_PLUGIN_ID</code> and{' '}
+                <code className="bg-muted px-1 py-0.5 rounded text-xs">CHAKRA_ACCESS_TOKEN</code>
+              </p>
             )}
-          </CardTitle>
-          <CardDescription>
-            WhatsApp coexistence powered by ChakraHQ pass-through API
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {setup?.connected ? (
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="space-y-1">
-                <p className="text-sm font-medium text-muted-foreground">Plugin ID</p>
-                <p className="text-sm font-mono">{setup.pluginId}</p>
-              </div>
-              <div className="space-y-1">
-                <p className="text-sm font-medium text-muted-foreground">Status</p>
-                <p className="text-sm text-green-600 dark:text-green-400">Active &mdash; API credentials configured</p>
-              </div>
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">
-              Set <code className="bg-muted px-1.5 py-0.5 rounded text-xs">CHAKRA_PLUGIN_ID</code> and{' '}
-              <code className="bg-muted px-1.5 py-0.5 rounded text-xs">CHAKRA_ACCESS_TOKEN</code> environment variables to connect.
-            </p>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              YCloud
+              {ycloudConnected ? (
+                <Badge variant="default" className="bg-green-600">
+                  <CheckCircle2 className="h-3 w-3 mr-1" />
+                  Connected
+                </Badge>
+              ) : (
+                <Badge variant="secondary">
+                  <XCircle className="h-3 w-3 mr-1" />
+                  Not Configured
+                </Badge>
+              )}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {ycloudConnected ? (
+              <p className="text-sm text-green-600 dark:text-green-400">API key configured</p>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                Set <code className="bg-muted px-1 py-0.5 rounded text-xs">YCLOUD_API_KEY</code>
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Add Number Form */}
       {showForm && (
@@ -215,26 +259,45 @@ export default function WhatsAppSettingsPage() {
           <CardHeader>
             <CardTitle>Add WhatsApp Number</CardTitle>
             <CardDescription>
-              Find these in your ChakraHQ WhatsApp Setup page. Click the gear icon next to &ldquo;WhatsApp Phone Numbers&rdquo; to see the Meta Phone Number ID.
+              Select the provider and enter the phone number details.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label>Provider</Label>
+                <Select
+                  value={form.provider}
+                  onValueChange={(v) => setForm((f) => ({ ...f, provider: v as 'chakrahq' | 'ycloud' }))}
+                >
+                  <SelectTrigger className="w-[200px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ycloud">YCloud</SelectItem>
+                    <SelectItem value="chakrahq">ChakraHQ</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="phone_number_id">Phone Number ID (Meta) *</Label>
+                  <Label htmlFor="phone_number_id">
+                    {form.provider === 'ycloud' ? 'Phone Number ID' : 'Phone Number ID (Meta)'} *
+                  </Label>
                   <Input
                     id="phone_number_id"
-                    placeholder="e.g. 123456789012345"
+                    placeholder={form.provider === 'ycloud' ? 'e.g. 917888780264 (E.164 without +)' : 'e.g. 123456789012345'}
                     value={form.phone_number_id}
                     onChange={(e) => setForm((f) => ({ ...f, phone_number_id: e.target.value }))}
                   />
                   <p className="text-xs text-muted-foreground">
-                    ChakraHQ &gt; WhatsApp Setup &gt; Gear icon &gt; Meta ID column
+                    {form.provider === 'ycloud'
+                      ? 'Your WhatsApp number in E.164 format (digits only, no +)'
+                      : 'ChakraHQ > WhatsApp Setup > Gear icon > Meta ID column'}
                   </p>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="display_phone_number">Phone Number *</Label>
+                  <Label htmlFor="display_phone_number">Display Phone Number *</Label>
                   <Input
                     id="display_phone_number"
                     placeholder="e.g. +91 78887 80264"
@@ -296,6 +359,7 @@ export default function WhatsAppSettingsPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Phone Number</TableHead>
+                  <TableHead>Provider</TableHead>
                   <TableHead>Business Name</TableHead>
                   <TableHead>Phone Number ID</TableHead>
                   <TableHead>Status</TableHead>
@@ -304,84 +368,96 @@ export default function WhatsAppSettingsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {accounts.map((account) => (
-                  <TableRow key={account.id}>
-                    <TableCell className="font-medium font-mono">
-                      {account.display_phone_number}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {account.business_name || '—'}
-                    </TableCell>
-                    <TableCell className="font-mono text-xs text-muted-foreground">
-                      {account.phone_number_id}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={account.status === 'active' ? 'default' : 'secondary'}>
-                        {account.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {account.is_default && (
-                        <Badge variant="outline" className="text-amber-500 border-amber-500/50">
-                          <Star className="h-3 w-3 mr-1 fill-current" />
-                          Default
+                {accounts.map((account) => {
+                  const prov = getProviderForAccount(account)
+                  return (
+                    <TableRow key={account.id}>
+                      <TableCell className="font-medium font-mono">
+                        {account.display_phone_number}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className={
+                          prov === 'ycloud'
+                            ? 'border-blue-500/50 text-blue-600 dark:text-blue-400'
+                            : 'border-purple-500/50 text-purple-600 dark:text-purple-400'
+                        }>
+                          {prov === 'ycloud' ? 'YCloud' : 'ChakraHQ'}
                         </Badge>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1">
-                        {!account.is_default && account.status === 'active' && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            title="Set as default"
-                            onClick={() => handleSetDefault(account.id)}
-                          >
-                            <Star className="h-4 w-4" />
-                          </Button>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {account.business_name || '\u2014'}
+                      </TableCell>
+                      <TableCell className="font-mono text-xs text-muted-foreground">
+                        {account.phone_number_id}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={account.status === 'active' ? 'default' : 'secondary'}>
+                          {account.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {account.is_default && (
+                          <Badge variant="outline" className="text-amber-500 border-amber-500/50">
+                            <Star className="h-3 w-3 mr-1 fill-current" />
+                            Default
+                          </Badge>
                         )}
-                        {account.status === 'active' ? (
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1">
+                          {!account.is_default && account.status === 'active' && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              title="Set as default"
+                              onClick={() => handleSetDefault(account.id)}
+                            >
+                              <Star className="h-4 w-4" />
+                            </Button>
+                          )}
+                          {account.status === 'active' ? (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              title="Disconnect"
+                              onClick={() => handleDisconnect(account.id)}
+                            >
+                              <Unplug className="h-4 w-4" />
+                            </Button>
+                          ) : (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              title="Reconnect"
+                              onClick={() => handleReconnect(account.id)}
+                            >
+                              <RefreshCw className="h-4 w-4" />
+                            </Button>
+                          )}
                           <Button
                             variant="ghost"
                             size="icon"
-                            title="Disconnect"
-                            onClick={() => handleDisconnect(account.id)}
+                            title="Remove"
+                            onClick={() => handleDelete(account.id)}
                           >
-                            <Unplug className="h-4 w-4" />
+                            <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
-                        ) : (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            title="Reconnect"
-                            onClick={() => handleReconnect(account.id)}
-                          >
-                            <RefreshCw className="h-4 w-4" />
-                          </Button>
-                        )}
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          title="Remove"
-                          onClick={() => handleDelete(account.id)}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
               </TableBody>
             </Table>
           )}
         </CardContent>
       </Card>
 
-      {/* Sync Chat History */}
-      {accounts.length > 0 && (
+      {/* Sync Chat History (ChakraHQ only) */}
+      {accounts.some((a) => getProviderForAccount(a) === 'chakrahq') && (
         <Card>
           <CardHeader>
-            <CardTitle>Chat History</CardTitle>
+            <CardTitle>Chat History (ChakraHQ)</CardTitle>
             <CardDescription>
               Import existing WhatsApp conversations from ChakraHQ into OmniDesk
             </CardDescription>
@@ -393,7 +469,7 @@ export default function WhatsAppSettingsPage() {
                 {syncing ? 'Syncing...' : 'Import Chat History'}
               </Button>
               <p className="text-sm text-muted-foreground">
-                Pulls all chats &amp; messages from ChakraHQ. Safe to run multiple times — duplicates are skipped.
+                Pulls all chats &amp; messages from ChakraHQ. Safe to run multiple times.
               </p>
             </div>
             {syncResult && (
@@ -420,34 +496,49 @@ export default function WhatsAppSettingsPage() {
         <CardHeader>
           <CardTitle>Webhook Configuration</CardTitle>
           <CardDescription>
-            Configure this in your ChakraHQ WhatsApp Setup &gt; More tab &gt; &ldquo;Pass-through webhook URL for Meta events&rdquo;
+            Configure webhook URLs in each provider&apos;s dashboard to receive inbound messages.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-6">
+          {/* ChakraHQ webhook */}
           <div className="space-y-2">
-            <p className="text-sm font-medium">Webhook URL</p>
+            <p className="text-sm font-medium">ChakraHQ Webhook URL</p>
             <div className="flex items-center gap-2">
               <code className="flex-1 text-sm bg-muted px-3 py-2 rounded-md break-all">
-                {webhookUrl}
+                {chakraWebhookUrl}
               </code>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => copyToClipboard(webhookUrl)}
-                title="Copy"
-              >
+              <Button variant="outline" size="icon" onClick={() => copyToClipboard(chakraWebhookUrl)} title="Copy">
                 <Copy className="h-4 w-4" />
               </Button>
             </div>
+            <p className="text-xs text-muted-foreground">
+              ChakraHQ &gt; WhatsApp Setup &gt; More tab &gt; &ldquo;Pass-through webhook URL&rdquo;
+            </p>
           </div>
+
+          {/* YCloud webhook */}
+          <div className="space-y-2">
+            <p className="text-sm font-medium">YCloud Webhook URL</p>
+            <div className="flex items-center gap-2">
+              <code className="flex-1 text-sm bg-muted px-3 py-2 rounded-md break-all">
+                {ycloudWebhookUrl}
+              </code>
+              <Button variant="outline" size="icon" onClick={() => copyToClipboard(ycloudWebhookUrl)} title="Copy">
+                <Copy className="h-4 w-4" />
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              YCloud Dashboard &gt; Configuration &gt; Webhooks &gt; Add endpoint
+            </p>
+          </div>
+
           <div className="rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950 p-3">
-            <p className="text-sm font-medium text-amber-800 dark:text-amber-200">Setup Steps</p>
-            <ol className="text-sm text-amber-700 dark:text-amber-300 mt-1 space-y-1 list-decimal list-inside">
-              <li>Open ChakraHQ &gt; WhatsApp Setup &gt; <strong>More</strong> tab</li>
-              <li>Paste the URL above into &ldquo;Pass-through webhook URL for Meta events&rdquo;</li>
-              <li>Click <strong>Save</strong> (top right)</li>
-              <li>Messages sent to your WhatsApp number will now appear in OmniDesk</li>
-            </ol>
+            <p className="text-sm font-medium text-amber-800 dark:text-amber-200">Setup Tips</p>
+            <ul className="text-sm text-amber-700 dark:text-amber-300 mt-1 space-y-1 list-disc list-inside">
+              <li>ChakraHQ: paste webhook URL in &ldquo;More&rdquo; tab, click Save</li>
+              <li>YCloud: add webhook endpoint, subscribe to <code className="text-xs">whatsapp.inbound_message.received</code> and <code className="text-xs">whatsapp.message.updated</code></li>
+              <li>Both providers can work simultaneously on different numbers</li>
+            </ul>
           </div>
         </CardContent>
       </Card>

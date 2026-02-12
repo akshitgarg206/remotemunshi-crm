@@ -1,10 +1,10 @@
 # Bigger Picture
 
-> **ACTIVE GOAL:** Build Remote Munshi CRM — full Turia clone with REST API + webhooks (Next.js 16 + Supabase)
+> **ACTIVE GOAL:** Add YCloud as second WhatsApp provider alongside ChakraHQ
 >
-> **STATUS:** WhatsApp integration switched from direct Meta Cloud API to ChakraHQ pass-through
+> **STATUS:** IMPLEMENTING — provider dispatch in client.ts, YCloud webhook, multi-provider UI
 >
-> **NEXT STEP:** Set Vercel env vars (CHAKRA_PLUGIN_ID, CHAKRA_ACCESS_TOKEN, CHAKRA_REFRESH_TOKEN, WHATSAPP_WEBHOOK_VERIFY_TOKEN). Then: get Meta Phone Number ID from ChakraHQ dashboard, add number via Settings > WhatsApp, configure webhook URL in ChakraHQ.
+> **NEXT STEP:** Implement all 8 plan steps: client.ts dispatch → media.ts → ycloud webhook → process-inbound → outbound dispatch → accounts API → setup API → settings UI
 
 **Last Updated:** 2026-02-12
 

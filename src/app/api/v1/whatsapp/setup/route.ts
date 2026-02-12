@@ -3,43 +3,46 @@ import { apiHandler } from '@/lib/api/handler'
 import { discoverPhoneNumbers } from '@/lib/whatsapp/client'
 
 /**
- * GET — Check ChakraHQ connection status and discover phone numbers
+ * GET — Check connection status for all WhatsApp providers
  */
 export const GET = apiHandler(async () => {
-  const pluginId = process.env.CHAKRA_PLUGIN_ID
-  const hasToken = !!process.env.CHAKRA_ACCESS_TOKEN
+  // ChakraHQ status
+  const chakraPluginId = process.env.CHAKRA_PLUGIN_ID
+  const hasChakraToken = !!process.env.CHAKRA_ACCESS_TOKEN
+  const chakraConnected = !!(chakraPluginId && hasChakraToken)
 
-  if (!pluginId || !hasToken) {
-    return NextResponse.json({
-      success: true,
-      data: {
-        connected: false,
-        pluginId: null,
-        phoneNumbers: [],
-        message: 'ChakraHQ not configured. Set CHAKRA_PLUGIN_ID and CHAKRA_ACCESS_TOKEN env vars.',
-      },
-    })
+  let chakraPhoneNumbers: { phoneNumberId: string; displayNumber: string; verifiedName: string }[] = []
+  if (chakraConnected) {
+    try {
+      const result = await discoverPhoneNumbers()
+      chakraPhoneNumbers = result.phoneNumbers
+    } catch {
+      // Connected but discovery failed — that's ok
+    }
   }
 
-  try {
-    const result = await discoverPhoneNumbers()
-    return NextResponse.json({
-      success: true,
-      data: {
-        connected: true,
-        pluginId: result.pluginId,
-        phoneNumbers: result.phoneNumbers,
+  // YCloud status
+  const hasYCloudKey = !!process.env.YCLOUD_API_KEY
+  const ycloudConnected = hasYCloudKey
+
+  return NextResponse.json({
+    success: true,
+    data: {
+      // Legacy fields for backward compat
+      connected: chakraConnected || ycloudConnected,
+      pluginId: chakraPluginId || null,
+      phoneNumbers: chakraPhoneNumbers,
+      // Per-provider status
+      providers: {
+        chakrahq: {
+          connected: chakraConnected,
+          pluginId: chakraPluginId || null,
+          phoneNumbers: chakraPhoneNumbers,
+        },
+        ycloud: {
+          connected: ycloudConnected,
+        },
       },
-    })
-  } catch (err) {
-    return NextResponse.json({
-      success: true,
-      data: {
-        connected: true,
-        pluginId,
-        phoneNumbers: [],
-        message: 'Connected but could not auto-discover phone numbers. Add them manually.',
-      },
-    })
-  }
+    },
+  })
 }, { requirePermission: { module: 'settings', action: 'read' } })

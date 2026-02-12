@@ -4,7 +4,7 @@
  */
 
 import { SupabaseClient } from '@supabase/supabase-js'
-import { downloadMedia } from './client'
+import { downloadMedia, downloadMediaYCloud, type WhatsAppProvider } from './client'
 
 const MIME_TO_EXT: Record<string, string> = {
   'image/jpeg': 'jpg',
@@ -27,11 +27,23 @@ export async function downloadAndUploadMedia(params: {
   supabase: SupabaseClient
   mediaId: string
   conversationId: string
+  provider?: WhatsAppProvider
+  mediaUrl?: string
 }): Promise<{ url: string; mimeType: string; size: number }> {
-  const { supabase, mediaId, conversationId } = params
+  const { supabase, mediaId, conversationId, provider, mediaUrl } = params
 
-  // Download from WhatsApp via ChakraHQ pass-through
-  const { buffer, mimeType } = await downloadMedia({ mediaId })
+  // Download from WhatsApp — YCloud gives direct URLs, ChakraHQ uses media ID lookup
+  let buffer: Buffer
+  let mimeType: string
+  if (provider === 'ycloud' && mediaUrl) {
+    const result = await downloadMediaYCloud({ mediaUrl })
+    buffer = result.buffer
+    mimeType = result.mimeType
+  } else {
+    const result = await downloadMedia({ mediaId })
+    buffer = result.buffer
+    mimeType = result.mimeType
+  }
 
   // Determine file extension
   const ext = MIME_TO_EXT[mimeType] || 'bin'

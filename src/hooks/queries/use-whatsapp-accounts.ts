@@ -20,6 +20,10 @@ export interface WhatsAppSetupStatus {
   pluginId: string | null
   phoneNumbers: { phoneNumberId: string; displayNumber: string; verifiedName: string }[]
   message?: string
+  providers?: {
+    chakrahq: { connected: boolean; pluginId: string | null; phoneNumbers: { phoneNumberId: string; displayNumber: string; verifiedName: string }[] }
+    ycloud: { connected: boolean }
+  }
 }
 
 export function useWhatsAppAccounts() {
@@ -43,6 +47,7 @@ export function useCreateWhatsAppAccount() {
       phone_number_id: string
       display_phone_number: string
       business_name?: string
+      provider?: 'chakrahq' | 'ycloud'
     }) => apiFetch('/api/v1/whatsapp/accounts', { method: 'POST', body: JSON.stringify(data) }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['whatsapp-accounts'] }),
   })

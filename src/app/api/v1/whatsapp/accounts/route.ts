@@ -15,7 +15,8 @@ export const GET = apiHandler(async (req, { supabase }) => {
 export const POST = apiHandler(async (req, { supabase, employeeId }) => {
   const body = await req.json()
 
-  const { phone_number_id, display_phone_number, business_name } = body
+  const { phone_number_id, display_phone_number, business_name, provider } = body
+  const resolvedProvider = provider === 'ycloud' ? 'ycloud' : 'chakrahq'
 
   if (!phone_number_id || !display_phone_number) {
     return NextResponse.json(
@@ -24,21 +25,23 @@ export const POST = apiHandler(async (req, { supabase, employeeId }) => {
     )
   }
 
-  // Access token is now managed via env vars (CHAKRA_ACCESS_TOKEN)
-  // Store a placeholder or the ChakraHQ token reference
+  // For YCloud, phone_number_id can be the E.164 number itself (no Meta phone number ID)
+  // Access token managed via env vars per provider
+  const metadata: Record<string, unknown> = { provider: resolvedProvider }
+  if (resolvedProvider === 'chakrahq') {
+    metadata.plugin_id = process.env.CHAKRA_PLUGIN_ID || null
+  }
+
   const { data, error } = await supabase
     .from('whatsapp_accounts')
     .insert({
       phone_number_id: phone_number_id.trim(),
-      waba_id: body.waba_id?.trim() || 'chakrahq',
-      access_token: 'chakrahq_env',
+      waba_id: body.waba_id?.trim() || (resolvedProvider === 'ycloud' ? 'ycloud' : 'chakrahq'),
+      access_token: resolvedProvider === 'ycloud' ? 'ycloud_env' : 'chakrahq_env',
       display_phone_number: display_phone_number.trim(),
       business_name: business_name?.trim() || null,
       created_by: employeeId,
-      metadata: {
-        provider: 'chakrahq',
-        plugin_id: process.env.CHAKRA_PLUGIN_ID || null,
-      },
+      metadata,
     })
     .select('id, phone_number_id, waba_id, display_phone_number, business_name, status, is_default, created_at')
     .single()
