@@ -88,17 +88,24 @@ export const POST = apiHandler(async (req, { params, supabase, employeeId }) => 
         }
 
         if (phoneNumberId) {
-          // Get recipient phone from contact
-          const { data: contact } = await supabase
-            .from('contacts')
-            .select('mobile')
-            .eq('id', conv.contact_id)
-            .single()
+          // Get recipient phone: from contact, or from conversation metadata (manual entry)
+          let recipientPhone = ''
+          if (conv.contact_id) {
+            const { data: contact } = await supabase
+              .from('contacts')
+              .select('mobile')
+              .eq('id', conv.contact_id)
+              .single()
+            recipientPhone = contact?.mobile?.replace(/[^+\d]/g, '') || ''
+          }
+          // Fallback: recipient_phone stored in conversation metadata (manually created conversations)
+          if (!recipientPhone && convMeta.recipient_phone) {
+            recipientPhone = convMeta.recipient_phone.replace(/[^+\d]/g, '')
+          }
 
-          console.log('WhatsApp outbound: contact lookup:', { contact_id: conv.contact_id, mobile: contact?.mobile })
+          console.log('WhatsApp outbound: recipient lookup:', { contact_id: conv.contact_id, recipientPhone })
 
-          if (contact?.mobile) {
-            const recipientPhone = contact.mobile.replace(/\D/g, '')
+          if (recipientPhone) {
 
             let waResponse
             if (validated.message_type === 'text' || !validated.attachments?.length) {

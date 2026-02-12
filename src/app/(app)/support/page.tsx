@@ -1,13 +1,13 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useRef, useState, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { KpiCard } from '@/components/kpi-cards/kpi-card'
-import { MessageSquarePlus, MessagesSquare, Ticket, ArrowUpRight, Clock } from 'lucide-react'
+import { MessageSquarePlus, MessagesSquare, Ticket, ArrowUpRight, Clock, AlertTriangle, Search } from 'lucide-react'
 import { ConversationList } from '@/components/support/conversation-list'
 import { ChatArea } from '@/components/support/chat-area'
 import { CustomerContextPanel } from '@/components/support/customer-context-panel'
@@ -19,6 +19,7 @@ import { useTicketKpi } from '@/hooks/queries/use-support-tickets'
 import { useCreateConversation } from '@/hooks/queries/use-support-conversations'
 import { useConversation } from '@/hooks/queries/use-support-conversations'
 import { useWhatsAppAccounts, type WhatsAppAccount } from '@/hooks/queries/use-whatsapp-accounts'
+import { useContacts } from '@/hooks/queries/use-contacts'
 import { toast } from 'sonner'
 
 export default function SupportPage() {
@@ -40,6 +41,10 @@ export default function SupportPage() {
   const [newConvChannel, setNewConvChannel] = useState('whatsapp')
   const [newConvSubject, setNewConvSubject] = useState('')
   const [newConvPhoneNumberId, setNewConvPhoneNumberId] = useState('')
+  const [newConvContactId, setNewConvContactId] = useState('')
+  const [newConvPhone, setNewConvPhone] = useState('')
+  const [contactSearch, setContactSearch] = useState('')
+  const [showContactDropdown, setShowContactDropdown] = useState(false)
   const createConversation = useCreateConversation()
 
   // WhatsApp accounts for number selector
@@ -49,8 +54,34 @@ export default function SupportPage() {
   // Auto-select default or first account
   const defaultWaAccount = waAccounts.find(a => a.is_default) || waAccounts[0]
 
+  // Contacts for search
+  const { data: contactsData } = useContacts({ pageSize: 200 })
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const allContacts = (contactsData?.data || []) as any[]
+
+  const filteredContacts = useMemo(() => {
+    if (!contactSearch.trim()) return []
+    const q = contactSearch.toLowerCase()
+    return allContacts
+      .filter((c: { name?: string; mobile?: string; phone?: string; email?: string }) =>
+        c.name?.toLowerCase().includes(q) ||
+        c.mobile?.includes(q) ||
+        c.phone?.includes(q) ||
+        c.email?.toLowerCase().includes(q)
+      )
+      .slice(0, 8)
+  }, [contactSearch, allContacts])
+
+  const selectedContact = allContacts.find((c: { id: string }) => c.id === newConvContactId)
+
   const handleNewConversation = () => {
-    // For WhatsApp, require a phone number selection
+    // Require a recipient (contact or phone number)
+    if (!newConvContactId && !newConvPhone.trim()) {
+      toast.error('Select a contact or enter a phone number.')
+      return
+    }
+
+    // For WhatsApp, require a business phone number
     const selectedPhoneId = newConvPhoneNumberId || defaultWaAccount?.phone_number_id
     if (newConvChannel === 'whatsapp' && !selectedPhoneId) {
       toast.error('No WhatsApp number available. Add one in Settings > WhatsApp.')
@@ -61,11 +92,20 @@ export default function SupportPage() {
       ? {
           phone_number_id: selectedPhoneId,
           display_phone_number: waAccounts.find(a => a.phone_number_id === selectedPhoneId)?.display_phone_number || '',
+          ...(newConvPhone.trim() && !newConvContactId ? { recipient_phone: newConvPhone.replace(/[^+\d]/g, '') } : {}),
         }
       : undefined
 
+    const contactName = selectedContact?.name || newConvPhone.trim()
+    const autoSubject = newConvSubject || (newConvChannel === 'whatsapp' ? `WhatsApp: ${contactName}` : contactName)
+
     createConversation.mutate(
-      { channel: newConvChannel, subject: newConvSubject || undefined, metadata },
+      {
+        channel: newConvChannel,
+        subject: autoSubject || undefined,
+        contact_id: newConvContactId || undefined,
+        metadata,
+      },
       {
         onSuccess: (data) => {
           const id = (data as { data?: { id?: string } })?.data?.id
@@ -73,6 +113,9 @@ export default function SupportPage() {
           setNewConvOpen(false)
           setNewConvSubject('')
           setNewConvPhoneNumberId('')
+          setNewConvContactId('')
+          setNewConvPhone('')
+          setContactSearch('')
           toast.success('Conversation created')
         },
         onError: (err) => toast.error(err.message),
@@ -193,32 +236,112 @@ export default function SupportPage() {
                 </SelectContent>
               </Select>
             </div>
-            {newConvChannel === 'whatsapp' && waAccounts.length > 0 && (
+
+            {/* Contact / Recipient */}
+            <div className="space-y-2">
+              <Label>Recipient</Label>
+              {selectedContact ? (
+                <div className="flex items-center justify-between rounded-md border px-3 py-2 bg-muted/50">
+                  <div>
+                    <p className="text-sm font-medium">{selectedContact.name}</p>
+                    <p className="text-xs text-muted-foreground">{selectedContact.mobile || selectedContact.phone || selectedContact.email || 'No phone'}</p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => { setNewConvContactId(''); setContactSearch(''); setNewConvPhone('') }}
+                  >
+                    Change
+                  </Button>
+                </div>
+              ) : (
+                <div className="relative">
+                  <div className="relative">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      value={contactSearch}
+                      onChange={(e) => {
+                        setContactSearch(e.target.value)
+                        setShowContactDropdown(true)
+                      }}
+                      onFocus={() => setShowContactDropdown(true)}
+                      placeholder="Search contacts by name or phone..."
+                      className="pl-9"
+                    />
+                  </div>
+                  {showContactDropdown && filteredContacts.length > 0 && (
+                    <div className="absolute z-50 mt-1 w-full rounded-md border bg-popover shadow-md max-h-48 overflow-y-auto">
+                      {filteredContacts.map((c: { id: string; name: string; mobile?: string; phone?: string; email?: string }) => (
+                        <button
+                          key={c.id}
+                          className="w-full text-left px-3 py-2 hover:bg-accent text-sm"
+                          onClick={() => {
+                            setNewConvContactId(c.id)
+                            setContactSearch('')
+                            setNewConvPhone(c.mobile || c.phone || '')
+                            setShowContactDropdown(false)
+                          }}
+                        >
+                          <span className="font-medium">{c.name}</span>
+                          {(c.mobile || c.phone) && (
+                            <span className="text-muted-foreground ml-2">{c.mobile || c.phone}</span>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Phone number — shown when no contact selected */}
+            {!newConvContactId && (
               <div className="space-y-2">
-                <Label>WhatsApp Number</Label>
-                <Select
-                  value={newConvPhoneNumberId || defaultWaAccount?.phone_number_id || ''}
-                  onValueChange={setNewConvPhoneNumberId}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select number..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {waAccounts.map((acct) => {
-                      const provider = (acct.metadata?.provider as string) || 'chakrahq'
-                      return (
-                        <SelectItem key={acct.id} value={acct.phone_number_id}>
-                          {acct.display_phone_number}
-                          {acct.business_name ? ` (${acct.business_name})` : ''}
-                          {' '}&mdash; {provider === 'ycloud' ? 'YCloud' : 'ChakraHQ'}
-                          {acct.is_default ? ' [Default]' : ''}
-                        </SelectItem>
-                      )
-                    })}
-                  </SelectContent>
-                </Select>
+                <Label>Phone Number</Label>
+                <Input
+                  value={newConvPhone}
+                  onChange={(e) => setNewConvPhone(e.target.value)}
+                  placeholder="+91XXXXXXXXXX"
+                />
+                <p className="text-xs text-muted-foreground">Enter with country code (e.g. +917009721584)</p>
               </div>
             )}
+
+            {/* WhatsApp business number selector */}
+            {newConvChannel === 'whatsapp' && (
+              <div className="space-y-2">
+                <Label>Send From (WhatsApp Number)</Label>
+                {waAccounts.length > 0 ? (
+                  <Select
+                    value={newConvPhoneNumberId || defaultWaAccount?.phone_number_id || ''}
+                    onValueChange={setNewConvPhoneNumberId}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select number..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {waAccounts.map((acct) => {
+                        const provider = (acct.metadata?.provider as string) || 'chakrahq'
+                        return (
+                          <SelectItem key={acct.id} value={acct.phone_number_id}>
+                            {acct.display_phone_number}
+                            {acct.business_name ? ` (${acct.business_name})` : ''}
+                            {' '}&mdash; {provider === 'ycloud' ? 'YCloud' : 'ChakraHQ'}
+                            {acct.is_default ? ' [Default]' : ''}
+                          </SelectItem>
+                        )
+                      })}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <div className="flex items-center gap-2 rounded-md border border-destructive/50 bg-destructive/5 px-3 py-2">
+                    <AlertTriangle className="h-4 w-4 text-destructive shrink-0" />
+                    <p className="text-sm text-destructive">No WhatsApp numbers configured. Add one in Settings &gt; WhatsApp.</p>
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label>Subject (optional)</Label>
               <Input
@@ -230,7 +353,12 @@ export default function SupportPage() {
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setNewConvOpen(false)}>Cancel</Button>
-            <Button onClick={handleNewConversation}>Create</Button>
+            <Button
+              onClick={handleNewConversation}
+              disabled={createConversation.isPending || (newConvChannel === 'whatsapp' && waAccounts.length === 0)}
+            >
+              {createConversation.isPending ? 'Creating...' : 'Create'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

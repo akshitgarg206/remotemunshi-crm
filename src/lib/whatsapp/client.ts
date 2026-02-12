@@ -535,14 +535,16 @@ export async function sendTextMessageForConversation(params: {
   const provider = await getProviderForPhoneNumberId(supabase, phoneNumberId)
 
   if (provider === 'ycloud') {
-    // YCloud uses display_phone_number as `from` (E.164)
+    // YCloud uses display_phone_number as `from` (E.164 with + prefix)
     const { data: acct } = await supabase
       .from('whatsapp_accounts')
       .select('display_phone_number')
       .eq('phone_number_id', phoneNumberId)
       .single()
-    const from = acct?.display_phone_number?.replace(/\D/g, '') || ''
-    return ycloudSendText({ from, to, body })
+    const raw = acct?.display_phone_number?.replace(/[^+\d]/g, '') || ''
+    const from = raw.startsWith('+') ? raw : `+${raw}`
+    const toE164 = to.startsWith('+') ? to : `+${to}`
+    return ycloudSendText({ from, to: toE164, body })
   }
 
   return sendTextMessage({ phoneNumberId, to, body })
@@ -566,8 +568,10 @@ export async function sendMediaMessageForConversation(params: {
       .select('display_phone_number')
       .eq('phone_number_id', phoneNumberId)
       .single()
-    const from = acct?.display_phone_number?.replace(/\D/g, '') || ''
-    return ycloudSendMedia({ from, to, type, mediaUrl, caption, filename })
+    const raw = acct?.display_phone_number?.replace(/[^+\d]/g, '') || ''
+    const from = raw.startsWith('+') ? raw : `+${raw}`
+    const toE164 = to.startsWith('+') ? to : `+${to}`
+    return ycloudSendMedia({ from, to: toE164, type, mediaUrl, caption, filename })
   }
 
   return sendMediaMessage({ phoneNumberId, to, type, mediaUrl, caption, filename })
