@@ -2,9 +2,9 @@
 
 > **ACTIVE GOAL:** Build Remote Munshi CRM — full Turia clone with REST API + webhooks (Next.js 16 + Supabase)
 >
-> **STATUS:** Implementing per-channel & per-handle inbox views for OmniDesk
+> **STATUS:** Per-channel & per-handle inbox views COMPLETE. All 5 phases done, tested, deployed.
 >
-> **NEXT STEP:** Phase 1: Stitch designs → Phase 2: Store update → Phase 3: UI → Phase 4: API → Phase 5: Counts
+> **NEXT STEP:** User to verify on live. Any remaining feature additions per user request.
 
 **Last Updated:** 2026-02-12
 
@@ -136,6 +136,7 @@
 | 2026-02-12 | YCloud webhook: all 17 events | Expanded webhook handler from 2 to 17 YCloud events. Core (inbound/status) processed into OmniDesk. Phone number events update account metadata (quality/name status). Account ban/deletion auto-disconnects numbers. SMB echoes tracked. Template/payment/subscription events logged. |
 | 2026-02-12 | WhatsApp number selector in OmniDesk | New Conversation dialog now shows WhatsApp number dropdown when channel=whatsapp. User can override default number. phone_number_id stored in conversation metadata for correct provider routing. Validator updated to accept metadata field. |
 | 2026-02-12 | Fix YCloud outbound + contact picker | Fixed E.164 phone format (was stripping + prefix), updated DB display_phone_number to +917986534860. Added contact search/select + manual phone input to New Conversation dialog. Messages route fallback to metadata.recipient_phone. Always show Send From selector with no-accounts warning. |
+| 2026-02-12 | Per-channel & per-handle inbox views | Channel filter bar (All/WhatsApp/Email/Phone/SMS pill tabs with count badges), WhatsApp handle dropdown (filter by phone number with provider badges), phone_number_id JSONB filter on API, /conversations/counts endpoint, dark mode support. 3 Stitch designs. 7 files changed. |
 
 ### Upcoming
 | Item | Priority | Depends On |
