@@ -30,7 +30,7 @@ export function MessageComposer({ conversationId, channel, composerRef }: Messag
   const { isInternalNote, setIsInternalNote, selectedChannel } = useOmnideskStore()
   const sendMessage = useSendMessage()
 
-  const displayChannel = channel || selectedChannel
+  const displayChannel = channel || selectedChannel || 'whatsapp'
 
   // Expose insertText for AI reply / quick replies
   useEffect(() => {

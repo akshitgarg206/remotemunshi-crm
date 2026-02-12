@@ -6,7 +6,7 @@ import { createConversationSchema } from '@/lib/validators/support-conversations
 
 export const GET = apiHandler(async (req, { supabase }) => {
   const { page, pageSize, offset, sortBy, sortOrder, search } = parsePagination(req)
-  const filters = parseFilters(req, ['status', 'channel', 'assigned_employee_id', 'is_spam', 'client_id'])
+  const filters = parseFilters(req, ['status', 'channel', 'assigned_employee_id', 'is_spam', 'client_id', 'phone_number_id'])
 
   let query = supabase
     .from('support_conversations')
@@ -27,6 +27,7 @@ export const GET = apiHandler(async (req, { supabase }) => {
   if (filters.assigned_employee_id) query = query.eq('assigned_employee_id', filters.assigned_employee_id)
   if (filters.is_spam) query = query.eq('is_spam', filters.is_spam === 'true')
   if (filters.client_id) query = query.eq('client_id', filters.client_id)
+  if (filters.phone_number_id) query = query.eq('metadata->>phone_number_id', filters.phone_number_id)
 
   const orderCol = sortBy === 'last_message_at' ? 'last_message_at' : sortBy
   query = query.order(orderCol, { ascending: sortOrder === 'asc' })

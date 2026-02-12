@@ -2,9 +2,9 @@
 
 > **ACTIVE GOAL:** Build Remote Munshi CRM — full Turia clone with REST API + webhooks (Next.js 16 + Supabase)
 >
-> **STATUS:** YCloud WhatsApp provider LIVE alongside ChakraHQ. Env vars set (YCLOUD_API_KEY, YCLOUD_WEBHOOK_SECRET). Deployed to Vercel.
+> **STATUS:** Implementing per-channel & per-handle inbox views for OmniDesk
 >
-> **NEXT STEP:** Add YCloud number via Settings > WhatsApp (provider: ycloud). Configure YCloud webhook URL in YCloud dashboard. Test inbound + outbound. Then test ChakraHQ still works (no regression).
+> **NEXT STEP:** Phase 1: Stitch designs → Phase 2: Store update → Phase 3: UI → Phase 4: API → Phase 5: Counts
 
 **Last Updated:** 2026-02-12
 
@@ -135,6 +135,7 @@
 | 2026-02-12 | YCloud WhatsApp provider added | Multi-provider support: provider dispatch in client.ts (getProviderForPhoneNumberId), YCloud send/media functions, /api/v1/webhooks/ycloud endpoint with HMAC-SHA256 verification, provider-aware outbound in messages route, provider field in accounts API, multi-provider setup status, Settings page with provider dropdown + badges + dual webhook URLs. 10 files changed, 765 insertions. |
 | 2026-02-12 | YCloud webhook: all 17 events | Expanded webhook handler from 2 to 17 YCloud events. Core (inbound/status) processed into OmniDesk. Phone number events update account metadata (quality/name status). Account ban/deletion auto-disconnects numbers. SMB echoes tracked. Template/payment/subscription events logged. |
 | 2026-02-12 | WhatsApp number selector in OmniDesk | New Conversation dialog now shows WhatsApp number dropdown when channel=whatsapp. User can override default number. phone_number_id stored in conversation metadata for correct provider routing. Validator updated to accept metadata field. |
+| 2026-02-12 | Fix YCloud outbound + contact picker | Fixed E.164 phone format (was stripping + prefix), updated DB display_phone_number to +917986534860. Added contact search/select + manual phone input to New Conversation dialog. Messages route fallback to metadata.recipient_phone. Always show Send From selector with no-accounts warning. |
 
 ### Upcoming
 | Item | Priority | Depends On |
