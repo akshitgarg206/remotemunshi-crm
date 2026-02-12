@@ -22,6 +22,7 @@ export async function GET(req: NextRequest) {
 
 /**
  * POST — Incoming messages and status updates from WhatsApp via ChakraHQ pass-through
+ * Must await processing before returning — Vercel kills serverless functions after response.
  * Always return 200 to prevent retries.
  */
 export async function POST(req: NextRequest) {
@@ -39,16 +40,34 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const payload: WebhookPayload = JSON.parse(rawBody)
-
-    if (payload.object !== 'whatsapp_business_account') {
+    let payload: WebhookPayload
+    try {
+      payload = JSON.parse(rawBody)
+    } catch {
+      console.error('WhatsApp webhook: invalid JSON body:', rawBody.substring(0, 500))
       return NextResponse.json({ status: 'ok' }, { status: 200 })
     }
 
-    // Process asynchronously — don't block the response
-    processWebhookAsync(payload).catch((err) =>
-      console.error('WhatsApp webhook processing error:', err)
-    )
+    console.log('WhatsApp webhook received:', JSON.stringify({
+      object: payload.object,
+      entryCount: payload.entry?.length,
+      firstEntry: payload.entry?.[0] ? {
+        id: payload.entry[0].id,
+        changesCount: payload.entry[0].changes?.length,
+        field: payload.entry[0].changes?.[0]?.field,
+        hasMessages: !!payload.entry[0].changes?.[0]?.value?.messages,
+        hasStatuses: !!payload.entry[0].changes?.[0]?.value?.statuses,
+        phoneNumberId: payload.entry[0].changes?.[0]?.value?.metadata?.phone_number_id,
+      } : null,
+    }))
+
+    if (payload.object !== 'whatsapp_business_account') {
+      console.log('WhatsApp webhook: ignoring non-whatsapp object:', payload.object)
+      return NextResponse.json({ status: 'ok' }, { status: 200 })
+    }
+
+    // MUST await — Vercel terminates serverless functions after response returns
+    await processWebhookEntries(payload)
 
     return NextResponse.json({ status: 'ok' }, { status: 200 })
   } catch (err) {
@@ -77,9 +96,9 @@ function verifySignature(rawBody: string, signature: string, appSecret: string):
 }
 
 /**
- * Process webhook entries asynchronously
+ * Process webhook entries — awaited before returning response
  */
-async function processWebhookAsync(payload: WebhookPayload): Promise<void> {
+async function processWebhookEntries(payload: WebhookPayload): Promise<void> {
   const supabase = createAdminClient()
 
   for (const entry of payload.entry) {
@@ -104,6 +123,7 @@ async function processWebhookAsync(payload: WebhookPayload): Promise<void> {
               phoneNumberId,
               displayPhoneNumber,
             })
+            console.log('Processed inbound message:', msg.id, 'from:', msg.from, 'type:', msg.type)
           } catch (err) {
             console.error('Failed to process inbound message:', err)
           }
