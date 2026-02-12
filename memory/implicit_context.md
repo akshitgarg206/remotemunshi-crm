@@ -1,6 +1,6 @@
 # Implicit Context
 
-> **RESUME BRIEF:** WhatsApp integration DONE — switched to ChakraHQ (not AiSensy). ChakraHQ provides pass-through to Meta Cloud API at `api.chakrahq.com/v1/ext/plugin/whatsapp/{pluginId}/api/v21.0/`. Auth via `CHAKRA_ACCESS_TOKEN` env var. Plugin ID: `fd628b49-97c2-44ce-8fde-e5688503087f`. Phone: `+91 78887 80264`. PENDING: User needs to (1) set env vars on Vercel, (2) get Meta Phone Number ID from ChakraHQ dashboard, (3) add number via Settings > WhatsApp page, (4) configure webhook URL in ChakraHQ. Supabase project ID: `atsemlszcgcojdoqjplt`. IMPORTANT: always push to both `main` AND `master`.
+> **RESUME BRIEF:** YCloud added as second WhatsApp provider alongside ChakraHQ. Multi-provider dispatch in client.ts based on `whatsapp_accounts.metadata.provider`. YCloud webhook handles all 17 events at `/api/v1/webhooks/ycloud`. Env vars set on Vercel: `YCLOUD_API_KEY=7c224a0d8eb52ccee55df123757c4cc5`, `YCLOUD_WEBHOOK_SECRET=whsec_587fd7434826460c88e6602f304ea18d`. OmniDesk "New Conversation" dialog now has WhatsApp number selector. PENDING: User needs to add YCloud number in Settings > WhatsApp, configure webhook URL in YCloud dashboard, test inbound/outbound. Supabase project ID: `atsemlszcgcojdoqjplt`. IMPORTANT: always push to both `main` AND `master`.
 
 **Last Updated:** 2026-02-12
 
@@ -9,47 +9,60 @@
 ## Current Session
 
 ### Active Work
-- **Task:** WhatsApp ChakraHQ Integration — CODE COMPLETE, pending env vars + setup
-- **Status:** All code updated for ChakraHQ pass-through. Build passes. Committed + pushed. Need user to set Vercel env vars and configure webhook in ChakraHQ.
-- **Key files:** src/lib/whatsapp/client.ts (ChakraHQ pass-through), src/app/(app)/settings/whatsapp/page.tsx, src/app/api/v1/webhooks/whatsapp/route.ts, src/app/api/v1/whatsapp/setup/route.ts (new)
+- **Task:** YCloud WhatsApp provider integration — COMPLETE + DEPLOYED
+- **Status:** All code committed + pushed + deployed to Vercel. Env vars set. Pending: user setup (add number, configure webhook in YCloud dashboard, test).
+- **Key files changed:**
+  - `src/lib/whatsapp/client.ts` — YCloud send functions + `getProviderForPhoneNumberId()` + unified dispatch
+  - `src/lib/whatsapp/media.ts` — provider-aware media download
+  - `src/lib/whatsapp/process-inbound.ts` — provider param + `_ycloud_link` pass-through
+  - `src/app/api/v1/webhooks/ycloud/route.ts` — NEW: all 17 YCloud event types
+  - `src/app/api/v1/support/conversations/[id]/messages/route.ts` — provider-aware outbound
+  - `src/app/api/v1/whatsapp/accounts/route.ts` — accepts `provider` field
+  - `src/app/api/v1/whatsapp/setup/route.ts` — per-provider status
+  - `src/app/(app)/settings/whatsapp/page.tsx` — provider dropdown, badges, dual webhook URLs
+  - `src/app/(app)/support/page.tsx` — WhatsApp number selector in New Conversation dialog
+  - `src/lib/validators/support-conversations.ts` — metadata field added
+  - `src/hooks/queries/use-whatsapp-accounts.ts` — provider in mutation + setup types
 
 ### Decisions Made (with reasoning)
 | Decision | Why | Alternatives Rejected |
 |----------|-----|----------------------|
-| ChakraHQ as BSP for coexistence | User needs same number on WhatsApp Business App + Cloud API. ChakraHQ provides pass-through API (same Meta format, different base URL). Originally planned AiSensy, switched to ChakraHQ | AiSensy (meeting didn't work out), Direct Cloud API (no coexistence), Wati (expensive) |
-| ChakraHQ pass-through instead of proprietary API | ChakraHQ wraps Meta's Cloud API — same request body format, just proxied through their servers. Minimal code changes needed vs building for proprietary API | Full ChakraHQ native API, Direct Meta Cloud API |
-| Auth via env vars instead of per-account DB tokens | Single ChakraHQ account for the whole CRM. Simpler, more secure. access_token field in whatsapp_accounts stores 'chakrahq_env' placeholder | Per-account tokens in DB (old approach for direct Meta API) |
-| Native confirm() for delete dialog | Project doesn't have @/components/ui/alert-dialog component | AlertDialog from shadcn/ui |
+| Simple if/else provider dispatch | Only 2 providers (ChakraHQ + YCloud). No need for abstract class hierarchy | Factory pattern, plugin system |
+| `metadata.provider` field on whatsapp_accounts | Existing JSONB column, no migration needed | New DB column, separate provider table |
+| Separate webhook endpoints per provider | Different payload formats, different signature verification. Clean separation | Single endpoint with provider detection |
+| YCloud `from` field = display_phone_number (E.164) | YCloud API requires `from` in E.164 format, no Meta-style phone_number_id | N/A |
+| Map YCloud payloads to Meta format | Reuse existing `processInboundMessage` / `processStatusUpdate` without duplication | Separate processing pipeline |
 
 ### Failed Attempts (DO NOT REPEAT THESE)
 | What I Tried | Why It Failed | What To Do Instead |
 |-------------|--------------|-------------------|
-| Previous sessions wrote entire app (70+ features) but never git committed | Context cleared → all code lost | ALWAYS commit + push after writing code |
-| Used AlertDialog component in WhatsApp settings page | @/components/ui/alert-dialog doesn't exist in the project | Use native confirm() |
-| Embedded Signup SDK with FB.login + config_id | User's Meta app only shows General/Conversions API/Instagram Graph login variations — no "WhatsApp Embedded Signup" option (Tech Provider only) | Use BSP (AiSensy) for coexistence, manual credential entry for settings page |
-| Tried to use Cloud API only (Option A) | User needs chat history, groups, and calls — Cloud API doesn't support any of these | Must use coexistence via BSP |
+| `z.record(z.unknown())` in Zod validator | This Zod version requires 2 args: `z.record(z.string(), z.unknown())` | Always use 2-arg form for z.record |
+| Previous sessions wrote entire app but never git committed | Context cleared → all code lost | ALWAYS commit + push after writing code |
+| Used AlertDialog component | @/components/ui/alert-dialog doesn't exist | Use native confirm() |
 
 ### Open Questions
-- What is the Meta Phone Number ID for +91 78887 80264? (User needs to find in ChakraHQ > WhatsApp Setup > Gear icon > Meta ID column)
-- Has the webhook URL been configured in ChakraHQ? (ChakraHQ > WhatsApp Setup > More tab > pass-through webhook URL)
-- Have Vercel env vars been set? (CHAKRA_PLUGIN_ID, CHAKRA_ACCESS_TOKEN, CHAKRA_REFRESH_TOKEN, WHATSAPP_WEBHOOK_VERIFY_TOKEN)
+- Has user added YCloud number in Settings > WhatsApp yet?
+- Has webhook URL been configured in YCloud dashboard?
+- Has test inbound/outbound been verified?
 
 ---
 
 ## Session History
 
-<!-- Before context clear: copy Current Session to here, then write RESUME BRIEF above -->
-<!-- Keep last 3 sessions. Delete oldest when adding new. -->
+### Session: 2026-02-12 (earlier)
+**Work Done:** WhatsApp ChakraHQ integration — switched from direct Meta Cloud API to ChakraHQ pass-through. Chat history sync from ChakraHQ. Debug logging for outbound send flow.
+**Key Learnings:** ChakraHQ wraps Meta API with same request format. ChakraHQ returns `{ _data: { whatsappMessageId } }` wrapper. Vercel kills serverless functions after response — must await processing.
+**Handoff:** ChakraHQ integration working. User setting up env vars.
 
 ### Session: 2026-02-10
-**Work Done:** WhatsApp Business API integration (6 phases): migration 00026, Cloud API client, inbound processor, webhook endpoint, outbound sending, Settings page. Fixed build error (missing AlertDialog). Created attachments storage bucket. Env vars + webhook configured in Meta dashboard.
-**Key Learnings:** Project doesn't have alert-dialog UI component — use native confirm(). Coexistence mode uses Embedded Signup flow not Dev Portal "Add Phone Number". Hard refresh needed after failed→successful Vercel deployments (cached old broken build causes sidebar to show only Dashboard).
-**Handoff:** All code deployed. User needs to connect WhatsApp numbers via Embedded Signup.
+**Work Done:** WhatsApp Business API integration (6 phases): migration 00026, Cloud API client, inbound processor, webhook endpoint, outbound sending, Settings page.
+**Key Learnings:** Project doesn't have alert-dialog UI component — use native confirm(). Hard refresh needed after failed→successful Vercel deployments.
+**Handoff:** All code deployed. User needs to connect WhatsApp numbers.
 
 ### Session: 2026-02-07
 **Work Done:** Fixed Vercel 404 (force-pushed main→master), made login page static, set function region to Mumbai (bom1)
-**Key Learnings:** Vercel production branch was `master` not `main`; force-dynamic on auth layout was unnecessary; always push to both branches
-**Handoff:** Production live, no test user yet, next step is create test account
+**Key Learnings:** Vercel production branch was `master` not `main`; always push to both branches
+**Handoff:** Production live, next step create test account
 
 ---
 

@@ -1,10 +1,10 @@
 # Bigger Picture
 
-> **ACTIVE GOAL:** Add YCloud as second WhatsApp provider alongside ChakraHQ
+> **ACTIVE GOAL:** Build Remote Munshi CRM — full Turia clone with REST API + webhooks (Next.js 16 + Supabase)
 >
-> **STATUS:** IMPLEMENTING — provider dispatch in client.ts, YCloud webhook, multi-provider UI
+> **STATUS:** YCloud WhatsApp provider LIVE alongside ChakraHQ. Env vars set (YCLOUD_API_KEY, YCLOUD_WEBHOOK_SECRET). Deployed to Vercel.
 >
-> **NEXT STEP:** Implement all 8 plan steps: client.ts dispatch → media.ts → ycloud webhook → process-inbound → outbound dispatch → accounts API → setup API → settings UI
+> **NEXT STEP:** Add YCloud number via Settings > WhatsApp (provider: ycloud). Configure YCloud webhook URL in YCloud dashboard. Test inbound + outbound. Then test ChakraHQ still works (no regression).
 
 **Last Updated:** 2026-02-12
 
@@ -132,6 +132,9 @@
 | 2026-02-11 | Fix service associations | Wrong column names in API (name→business_name, title→task_name, code→client_code). Supabase queries silently returned null. |
 | 2026-02-11 | Task dates + step owner | Migration 00029: target_date on tasks, owner_type on checklist items, target_days_before_due on templates. start_date/target_date/due_date on add+detail pages. Step owner toggle (Team/Client pill) on add+detail. Overdue highlighting: amber for target, red for due. |
 | 2026-02-12 | WhatsApp → ChakraHQ integration | Switched from direct Meta Cloud API to ChakraHQ pass-through. client.ts routes through api.chakrahq.com, auth via env vars, flexible webhook HMAC, ChakraHQ status card + webhook setup on Settings page, sendTemplateMessage added, deprecated token-exchange. 11 files changed. |
+| 2026-02-12 | YCloud WhatsApp provider added | Multi-provider support: provider dispatch in client.ts (getProviderForPhoneNumberId), YCloud send/media functions, /api/v1/webhooks/ycloud endpoint with HMAC-SHA256 verification, provider-aware outbound in messages route, provider field in accounts API, multi-provider setup status, Settings page with provider dropdown + badges + dual webhook URLs. 10 files changed, 765 insertions. |
+| 2026-02-12 | YCloud webhook: all 17 events | Expanded webhook handler from 2 to 17 YCloud events. Core (inbound/status) processed into OmniDesk. Phone number events update account metadata (quality/name status). Account ban/deletion auto-disconnects numbers. SMB echoes tracked. Template/payment/subscription events logged. |
+| 2026-02-12 | WhatsApp number selector in OmniDesk | New Conversation dialog now shows WhatsApp number dropdown when channel=whatsapp. User can override default number. phone_number_id stored in conversation metadata for correct provider routing. Validator updated to accept metadata field. |
 
 ### Upcoming
 | Item | Priority | Depends On |
