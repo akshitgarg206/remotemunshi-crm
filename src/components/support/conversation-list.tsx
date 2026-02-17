@@ -8,7 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Search, Inbox, Mail, Phone, MessageCircle } from 'lucide-react'
 import { WhatsAppSvgIcon, WhatsAppNumberIcon } from '@/components/icons/whatsapp-icon'
-import { useConversations } from '@/hooks/queries/use-support-conversations'
+import { useConversations, useMarkConversationRead } from '@/hooks/queries/use-support-conversations'
 import { useRealtimeConversations } from '@/hooks/use-realtime-messages'
 import { useOmnideskStore, type Channel } from '@/stores/omnidesk-store'
 import { useWhatsAppAccounts } from '@/hooks/queries/use-whatsapp-accounts'
@@ -82,8 +82,16 @@ export function ConversationList() {
 
   const { data, isLoading } = useConversations(filters)
   useRealtimeConversations()
+  const markRead = useMarkConversationRead()
 
   const conversations = (data?.data || []) as any[]
+
+  const handleSelect = (convId: string, unreadCount: number) => {
+    setActiveConversationId(convId)
+    if (unreadCount > 0) {
+      markRead.mutate({ conversationId: convId })
+    }
+  }
 
   return (
     <div className="flex flex-col h-full border-r">
@@ -211,12 +219,15 @@ export function ConversationList() {
             conversations.map((conv: Record<string, unknown>) => {
               const meta = conv.metadata as Record<string, string> | null
               const pnId = meta?.phone_number_id
+              const convId = conv.id as string
               return (
                 <ConversationListItem
-                  key={conv.id as string}
+                  key={convId}
                   conversation={conv as ConversationListItemProps['conversation']}
-                  isActive={activeConversationId === conv.id}
-                  onClick={() => setActiveConversationId(conv.id as string)}
+                  isActive={activeConversationId === convId}
+                  onClick={() => handleSelect(convId, (conv.unread_count as number) || 0)}
+                  onMarkRead={() => markRead.mutate({ conversationId: convId })}
+                  onMarkUnread={() => markRead.mutate({ conversationId: convId, unread: true })}
                   waAccountNumber={conv.channel === 'whatsapp' && pnId ? waAccountMap[pnId] ?? null : null}
                 />
               )

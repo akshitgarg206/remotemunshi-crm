@@ -88,3 +88,18 @@ export function useTakeoverConversation() {
     },
   })
 }
+
+export function useMarkConversationRead() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ conversationId, unread }: { conversationId: string; unread?: boolean }) =>
+      apiFetch(`/api/v1/support/conversations/${conversationId}/read`, {
+        method: 'PATCH',
+        body: JSON.stringify({ unread: !!unread }),
+      }),
+    onSuccess: (_, { conversationId }) => {
+      qc.invalidateQueries({ queryKey: ['support-conversations'] })
+      qc.invalidateQueries({ queryKey: ['support-conversations', conversationId] })
+    },
+  })
+}
