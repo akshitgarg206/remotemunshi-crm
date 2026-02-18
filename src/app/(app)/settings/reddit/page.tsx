@@ -108,7 +108,7 @@ function PostsSection() {
                     <p className="text-sm font-medium truncate">{post.title as string}</p>
                     <p className="text-xs text-muted-foreground">
                       {post.subreddit as string} · {post.num_comments as number} comments · {post.score as number} upvotes
-                      {post.created_utc && ` · ${new Date((post.created_utc as number) * 1000).toLocaleDateString()}`}
+                      {post.created_utc ? ` · ${new Date((post.created_utc as number) * 1000).toLocaleDateString()}` : ''}
                     </p>
                   </div>
                   <Button variant="outline" size="sm">

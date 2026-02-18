@@ -1,37 +1,37 @@
 # Implicit Context
 
-> **RESUME BRIEF:** YCloud added as second WhatsApp provider alongside ChakraHQ. Multi-provider dispatch in client.ts based on `whatsapp_accounts.metadata.provider`. YCloud webhook handles all 17 events at `/api/v1/webhooks/ycloud`. Env vars set on Vercel: `YCLOUD_API_KEY=7c224a0d8eb52ccee55df123757c4cc5`, `YCLOUD_WEBHOOK_SECRET=whsec_587fd7434826460c88e6602f304ea18d`. OmniDesk "New Conversation" dialog now has WhatsApp number selector. PENDING: User needs to add YCloud number in Settings > WhatsApp, configure webhook URL in YCloud dashboard, test inbound/outbound. Supabase project ID: `atsemlszcgcojdoqjplt`. IMPORTANT: always push to both `main` AND `master`.
+> **RESUME BRIEF:** Leads Module Enhancement (8 phases) COMPLETE. All code committed + pushed to main AND master. Build passes cleanly. Migrations 00031-00033 applied to Supabase (project: atsemlszcgcojdoqjplt). Fixed 2 build errors during testing: CsvImporter uses `onComplete` not `onImport`, and `{val && str}` pattern in JSX causes ReactNode type error (use ternary instead). PENDING: User needs to configure env vars on Vercel for Outlook (MICROSOFT_CLIENT_ID/SECRET/TENANT_ID/REDIRECT_URI) and Reddit (REDDIT_CLIENT_ID/SECRET/REDIRECT_URI) OAuth + INTEGRATION_ENCRYPTION_KEY for token encryption. IMPORTANT: always push to both `main` AND `master`.
 
-**Last Updated:** 2026-02-12
+**Last Updated:** 2026-02-18
 
 ---
 
 ## Current Session
 
 ### Active Work
-- **Task:** YCloud WhatsApp provider integration — COMPLETE + DEPLOYED
-- **Status:** All code committed + pushed + deployed to Vercel. Env vars set. Pending: user setup (add number, configure webhook in YCloud dashboard, test).
-- **Key files changed:**
-  - `src/lib/whatsapp/client.ts` — YCloud send functions + `getProviderForPhoneNumberId()` + unified dispatch
-  - `src/lib/whatsapp/media.ts` — provider-aware media download
-  - `src/lib/whatsapp/process-inbound.ts` — provider param + `_ycloud_link` pass-through
-  - `src/app/api/v1/webhooks/ycloud/route.ts` — NEW: all 17 YCloud event types
-  - `src/app/api/v1/support/conversations/[id]/messages/route.ts` — provider-aware outbound
-  - `src/app/api/v1/whatsapp/accounts/route.ts` — accepts `provider` field
-  - `src/app/api/v1/whatsapp/setup/route.ts` — per-provider status
-  - `src/app/(app)/settings/whatsapp/page.tsx` — provider dropdown, badges, dual webhook URLs
-  - `src/app/(app)/support/page.tsx` — WhatsApp number selector in New Conversation dialog
-  - `src/lib/validators/support-conversations.ts` — metadata field added
-  - `src/hooks/queries/use-whatsapp-accounts.ts` — provider in mutation + setup types
+- **Task:** Leads Module Enhancement — 8 phases — COMPLETE + DEPLOYED + BUILD VERIFIED
+- **Status:** All code committed + pushed to both main and master. Build passes. 2 type errors caught and fixed during build testing.
+- **Key deliverables:**
+  - 3 migrations (00031-00033) — lead enhancements, lead_communications, integration_connections + lead_import_log
+  - Lead stages settings API (CRUD at /api/v1/settings/lead-stages)
+  - Enhanced lead add form (2-column, all new fields)
+  - Rewritten lead detail page (3 tabs: Overview/Activity/Communications + edit dialog)
+  - Lead pipeline kanban board (dynamic columns, dnd-kit, optimistic moves)
+  - List/Board toggle + filter pills on leads list page
+  - WhatsApp convert-to-lead API + button in OmniDesk
+  - Outlook integration (7 API routes, OAuth + Graph API, contacts/emails/meetings import, settings page)
+  - Reddit integration (8 API routes, OAuth, posts/comments/messages import, settings page)
+  - LinkedIn CSV import (template mapping, field transform in import route, settings page)
+  - Settings hub updated with Outlook, LinkedIn, Reddit entries
 
 ### Decisions Made (with reasoning)
 | Decision | Why | Alternatives Rejected |
 |----------|-----|----------------------|
-| Simple if/else provider dispatch | Only 2 providers (ChakraHQ + YCloud). No need for abstract class hierarchy | Factory pattern, plugin system |
-| `metadata.provider` field on whatsapp_accounts | Existing JSONB column, no migration needed | New DB column, separate provider table |
-| Separate webhook endpoints per provider | Different payload formats, different signature verification. Clean separation | Single endpoint with provider detection |
-| YCloud `from` field = display_phone_number (E.164) | YCloud API requires `from` in E.164 format, no Meta-style phone_number_id | N/A |
-| Map YCloud payloads to Meta format | Reuse existing `processInboundMessage` / `processStatusUpdate` without duplication | Separate processing pipeline |
+| AES-256-GCM for OAuth tokens | Industry standard for at-rest encryption of secrets | Plain text storage, base64 |
+| Auto-refresh tokens in client.ts | Transparent to API routes, prevents expired token errors | Manual refresh in each route |
+| LinkedIn CSV import (not API) | LinkedIn API requires partner approval. CSV export is available to all users | Wait for API approval |
+| Reddit: own posts only | User requested capturing engagement on their own posts, not subreddit monitoring | Subreddit scraping |
+| Dynamic kanban columns from lead_stages | Stages are configurable via settings — can't hardcode | Hardcoded pipeline stages |
 
 ### Failed Attempts (DO NOT REPEAT THESE)
 | What I Tried | Why It Failed | What To Do Instead |
@@ -39,11 +39,13 @@
 | `z.record(z.unknown())` in Zod validator | This Zod version requires 2 args: `z.record(z.string(), z.unknown())` | Always use 2-arg form for z.record |
 | Previous sessions wrote entire app but never git committed | Context cleared → all code lost | ALWAYS commit + push after writing code |
 | Used AlertDialog component | @/components/ui/alert-dialog doesn't exist | Use native confirm() |
+| CsvImporter `onImport` prop | Prop doesn't exist — component uses `onComplete` | Use `onComplete` callback |
+| `{val && str}` in JSX for conditional rendering | TypeScript strict: `unknown && string` → type `unknown` not assignable to ReactNode | Use ternary: `{val ? str : ''}` |
 
 ### Open Questions
-- Has user added YCloud number in Settings > WhatsApp yet?
-- Has webhook URL been configured in YCloud dashboard?
-- Has test inbound/outbound been verified?
+- Has user configured Outlook OAuth env vars on Vercel?
+- Has user configured Reddit OAuth env vars on Vercel?
+- Has INTEGRATION_ENCRYPTION_KEY been generated and set?
 
 ---
 

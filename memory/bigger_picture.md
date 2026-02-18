@@ -1,12 +1,12 @@
 # Bigger Picture
 
-> **ACTIVE GOAL:** Build Remote Munshi CRM — full Turia clone with REST API + webhooks (Next.js 16 + Supabase)
+> **ACTIVE GOAL:** Leads Module Enhancement + External Lead Import Integrations (8 phases)
 >
-> **STATUS:** Per-channel & per-handle inbox views COMPLETE. All 5 phases done, tested, deployed.
+> **STATUS:** COMPLETE — All 8 phases implemented, build passing, deployed. 2 type errors fixed during testing.
 >
-> **NEXT STEP:** User to verify on live. Any remaining feature additions per user request.
+> **NEXT STEP:** Env vars needed on Vercel: MICROSOFT_CLIENT_ID/SECRET, REDDIT_CLIENT_ID/SECRET, INTEGRATION_ENCRYPTION_KEY
 
-**Last Updated:** 2026-02-12
+**Last Updated:** 2026-02-18
 
 ---
 
@@ -137,6 +137,10 @@
 | 2026-02-12 | WhatsApp number selector in OmniDesk | New Conversation dialog now shows WhatsApp number dropdown when channel=whatsapp. User can override default number. phone_number_id stored in conversation metadata for correct provider routing. Validator updated to accept metadata field. |
 | 2026-02-12 | Fix YCloud outbound + contact picker | Fixed E.164 phone format (was stripping + prefix), updated DB display_phone_number to +917986534860. Added contact search/select + manual phone input to New Conversation dialog. Messages route fallback to metadata.recipient_phone. Always show Send From selector with no-accounts warning. |
 | 2026-02-12 | Per-channel & per-handle inbox views | Channel filter bar (All/WhatsApp/Email/Phone/SMS pill tabs with count badges), WhatsApp handle dropdown (filter by phone number with provider badges), phone_number_id JSONB filter on API, /conversations/counts endpoint, dark mode support. 3 Stitch designs. 7 files changed. |
+| 2026-02-18 | Leads Module Enhancement — Phase 1 | Migration 00031 (score/temperature/deal_value/follow-up cols + enum values), 00032 (lead_communications table), 00033 (integration_connections + lead_import_log). Lead-stages settings API (CRUD). Updated validators + enums. logActivity utility. |
+| 2026-02-18 | Leads Module Enhancement — Phase 2 | Enhanced add form (2-column, stage/assignees/services/temperature/score/deal value/follow-up). Rewritten detail page (3 tabs: Overview/Activity/Communications). Edit dialog. Hooks: use-lead-communications, use-lead-activity. Components: lead-activity-timeline, lead-communication-timeline, log-lead-communication-dialog. |
+| 2026-02-18 | Leads Module Enhancement — Phase 3 | Lead pipeline kanban board (dynamic columns from lead_stages, dnd-kit drag-and-drop, optimistic moves). List/Board toggle. Filter pills (source, stage, temperature, follow-up due). Enhanced KPIs (hot leads, pipeline value). |
+| 2026-02-18 | Leads Module Enhancement — Phases 4-8 | Phase 4: WhatsApp convert-to-lead API + button. Phase 5: Outlook OAuth (MS Graph) — 7 API routes, contacts/emails/meetings import, settings page. Phase 6: Reddit OAuth — 8 API routes, posts/comments/messages import, settings page. Phase 7: LinkedIn CSV import with field mapping. Phase 8: Settings hub updated with 3 new integration entries. |
 
 ### Upcoming
 | Item | Priority | Depends On |

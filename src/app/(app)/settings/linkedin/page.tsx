@@ -1,8 +1,7 @@
 'use client'
 
-import { useState, useCallback } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, Linkedin, Upload, FileSpreadsheet, ExternalLink, Info } from 'lucide-react'
+import { ArrowLeft, Linkedin, FileSpreadsheet, ExternalLink, Info } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -46,7 +45,7 @@ export default function LinkedInSettingsPage() {
 
           <CsvImporter
             module="linkedin_connections"
-            onImport={() => {
+            onComplete={() => {
               toast.success('LinkedIn connections imported as leads')
             }}
           />

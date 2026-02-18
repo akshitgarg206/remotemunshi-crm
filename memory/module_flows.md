@@ -1,6 +1,6 @@
 # Remote Munshi CRM: Module Flows & Interlinkages
 
-> **Last Updated:** 2026-02-06
+> **Last Updated:** 2026-02-18
 > **Update Rule:** This file MUST be updated whenever modules, DB tables, API routes, or cross-module integrations change.
 
 ---
@@ -35,6 +35,9 @@
 | 00024 | Onboarding Templates | — | ALTER recurring_tasks: trigger_type (recurring/onboarding), frequency nullable + partial index for onboarding lookup |
 | 00025 | Contact Portal | — | ALTER contacts: auth_user_id (UUID FK → auth.users), portal_enabled (BOOLEAN). RLS policies on 11 tables for portal read access. |
 | 00026 | WhatsApp Accounts | 1 | whatsapp_accounts (phone_number_id, waba_id, access_token, display_phone_number, status, is_default) + conversation lookup index |
+| 00031 | Lead Enhancements | — | ALTER leads: score, temperature, deal_value, expected_close_date, next_follow_up, follow_up_notes, external_source, external_id, external_metadata. 6 new lead_source enum values. Updated v_lead_kpis view. |
+| 00032 | Lead Communications | 1 | lead_communications (lead_id FK, channel, direction, subject, body, from/to_contact, sent_at) + indexes + RLS |
+| 00033 | Integration Connections | 2 | integration_connections (employee_id, provider, status, encrypted tokens, scopes, account info). lead_import_log (lead_id, source, external_id, metadata, imported_by — UNIQUE on source+external_id). RLS on both. |
 
 ### 1.2 Core FK Relationships
 
@@ -113,14 +116,15 @@ lead_services → client_services (copied on conversion)
 
 ## 2. API ROUTES MAP
 
-### 2.1 Endpoint Inventory (60 route files)
+### 2.1 Endpoint Inventory (~85 route files)
 
 | Module | Routes | Endpoints |
 |--------|--------|-----------|
 | Auth | 3 | login, logout, me |
 | Clients | 3 + 4 sub | CRUD + KPI + communications + bundles + contacts + template-overrides |
 | Contacts | 2 | CRUD (list/create + detail/update/delete) |
-| Leads | 4 | CRUD + KPI + convert-to-client |
+| Leads | 6 | CRUD + KPI + convert-to-client + communications + activity |
+| Settings (Lead Stages) | 2 | List/create + get/update/delete |
 | Tasks | 8 | CRUD + summary + comments + checklist + time-entries + sub-tasks + review |
 | Task Templates | 3 | CRUD + generate from template (via recurring_tasks) |
 | Services | 2 | CRUD |
@@ -133,8 +137,8 @@ lead_services → client_services (copied on conversion)
 | Notifications | 2 | List + mark-read |
 | Webhooks | 3 | CRUD + deliveries |
 | Deadlines | 6 | List + generate + KPI + detail/update + receive-data + send-reminder |
-| Import | 2 | Template download + CSV import (9 modules) |
-| Support Conversations | 5 | CRUD + messages + assign + takeover |
+| Import | 2 | Template download + CSV import (10 modules incl. linkedin_connections) |
+| Support Conversations | 6 | CRUD + messages + assign + takeover + convert-to-lead |
 | Support Tickets | 3 | CRUD + KPI |
 | Support Escalations | 2 | List/create + detail/update |
 | Support Quick Replies | 2 | CRUD |
@@ -143,6 +147,8 @@ lead_services → client_services (copied on conversion)
 | WhatsApp Accounts | 2 | List/create + detail/update/delete |
 | WhatsApp Token Exchange | 1 | Exchange auth code → permanent access token |
 | WhatsApp Webhook | 1 | GET verification + POST inbound messages/statuses (public, HMAC-secured) |
+| Outlook Integration | 7 | auth, callback, status, disconnect, contacts (GET+POST), emails (GET+POST), meetings (GET+POST) |
+| Reddit Integration | 8 | auth, callback, status, disconnect, posts, posts/[postId]/comments, messages, import |
 
 ### 2.2 apiHandler Context
 
@@ -253,6 +259,15 @@ All 9 list pages follow: KPI cards → Tabs → DataGrid (search, sort, paginati
 | WhatsApp Webhook → Support Messages | conversation_id FK | Inbound messages inserted with whatsapp_message_id in metadata |
 | Support Messages (outbound) → WhatsApp Cloud API | phone_number_id from conversation metadata | Agent replies sent via WhatsApp when channel=whatsapp |
 | WhatsApp Status Updates → Support Messages | metadata->>whatsapp_message_id | Delivery receipts (sent/delivered/read) stored in message metadata |
+| Lead Communications → Leads | lead_id FK | Per-lead communication logging (channel, direction, body) |
+| Lead Activity → activity_log | entity_type='lead' + entity_id | Stage changes, field updates, imports logged |
+| Integration Connections → Employees | employee_id FK | OAuth connections per employee (Outlook, Reddit) |
+| Lead Import Log → Leads | lead_id FK | Dedup tracking for external imports (source + external_id UNIQUE) |
+| Outlook → Leads | via contacts/meetings import API | Import Outlook contacts/meeting attendees as leads |
+| Outlook → Lead Communications | via emails import API | Attach Outlook emails to existing leads |
+| Reddit → Leads | via import API | Import Reddit commenters/messagers as leads |
+| LinkedIn CSV → Leads | via CSV import route | LinkedIn connections CSV mapped to leads table |
+| WhatsApp Conversations → Leads | convert-to-lead API | Create lead from OmniDesk conversation contact |
 
 ---
 
