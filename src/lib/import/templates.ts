@@ -130,4 +130,16 @@ export const CSV_TEMPLATES: Record<string, CsvTemplate> = {
       { header: 'Remarks', field: 'remarks', required: false, type: 'string', example: 'Response pending' },
     ],
   },
+  linkedin_connections: {
+    module: 'linkedin_connections',
+    table: 'leads',
+    columns: [
+      { header: 'First Name', field: '_first_name', required: true, type: 'string', example: 'John' },
+      { header: 'Last Name', field: '_last_name', required: true, type: 'string', example: 'Doe' },
+      { header: 'Email Address', field: 'email', required: false, type: 'email', example: 'john@company.com' },
+      { header: 'Company', field: 'business_name', required: false, type: 'string', example: 'Acme Corp' },
+      { header: 'Position', field: '_position', required: false, type: 'string', example: 'Product Manager' },
+      { header: 'Connected On', field: '_connected_on', required: false, type: 'string', example: '01 Jan 2025' },
+    ],
+  },
 }

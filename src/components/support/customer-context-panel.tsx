@@ -5,9 +5,14 @@ import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { User, Mail, Phone, MapPin, Ticket, TrendingUp, TrendingDown, Minus } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { User, Mail, Phone, MapPin, Ticket, TrendingUp, TrendingDown, Minus, UserPlus } from 'lucide-react'
 import { useConversation } from '@/hooks/queries/use-support-conversations'
 import { useTickets } from '@/hooks/queries/use-support-tickets'
+import { useMutation } from '@tanstack/react-query'
+import { apiFetch } from '@/lib/api/fetch'
+import { toast } from 'sonner'
+import { useRouter } from 'next/navigation'
 
 const priorityColors: Record<string, string> = {
   low: 'bg-green-600',
@@ -21,6 +26,7 @@ interface CustomerContextPanelProps {
 }
 
 export function CustomerContextPanel({ conversationId }: CustomerContextPanelProps) {
+  const router = useRouter()
   const { data: convData, isLoading: convLoading } = useConversation(conversationId)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const conversation = convData?.data as any
@@ -28,6 +34,15 @@ export function CustomerContextPanel({ conversationId }: CustomerContextPanelPro
   const clientId = conversation?.client_id
   const { data: ticketData } = useTickets(clientId ? { client_id: clientId, pageSize: 5 } : undefined)
   const recentTickets = (ticketData?.data || []) as any[]
+
+  const convertToLead = useMutation({
+    mutationFn: () => apiFetch(`/api/v1/support/conversations/${conversationId}/convert-to-lead`, { method: 'POST' }),
+    onSuccess: (data: any) => {
+      toast.success('Lead created from conversation')
+      if (data?.data?.id) router.push(`/leads/${data.data.id}`)
+    },
+    onError: (err: Error) => toast.error(err.message),
+  })
 
   if (convLoading) {
     return (
@@ -89,6 +104,20 @@ export function CustomerContextPanel({ conversationId }: CustomerContextPanelPro
             </div>
           </CardContent>
         </Card>
+
+        {/* Create Lead — visible when no linked client */}
+        {!client && contact && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full"
+            onClick={() => convertToLead.mutate()}
+            disabled={convertToLead.isPending}
+          >
+            <UserPlus className="mr-2 h-4 w-4" />
+            {convertToLead.isPending ? 'Creating...' : 'Create Lead'}
+          </Button>
+        )}
 
         {/* Sentiment */}
         {sentiment !== null && sentiment !== undefined && (

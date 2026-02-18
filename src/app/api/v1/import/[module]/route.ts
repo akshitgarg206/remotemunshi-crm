@@ -96,8 +96,28 @@ export const POST = apiHandler(async (req, { params, supabase, employeeId }) => 
       row.client_id = clientId
     }
 
+    // LinkedIn CSV transform: merge first+last name, set source, build notes
+    if (module === 'linkedin_connections') {
+      const firstName = (row._first_name || '').trim()
+      const lastName = (row._last_name || '').trim()
+      const fullName = `${firstName} ${lastName}`.trim()
+      row.contact_person = fullName
+      if (!row.business_name) row.business_name = fullName
+      row.source = 'linkedin'
+      row.external_source = 'linkedin'
+      const noteParts: string[] = []
+      if (row._position) noteParts.push(`Position: ${row._position}`)
+      if (row._connected_on) noteParts.push(`Connected on LinkedIn: ${row._connected_on}`)
+      if (noteParts.length) row.notes = noteParts.join('\n')
+      row.external_metadata = JSON.stringify({ linkedin_first_name: firstName, linkedin_last_name: lastName, position: row._position, connected_on: row._connected_on })
+      delete row._first_name
+      delete row._last_name
+      delete row._position
+      delete row._connected_on
+    }
+
     // Add created_by for tables that need it
-    if (employeeId && ['clients', 'leads', 'tasks'].includes(module)) {
+    if (employeeId && ['clients', 'leads', 'tasks', 'linkedin_connections'].includes(module)) {
       row.created_by = employeeId
     }
 
