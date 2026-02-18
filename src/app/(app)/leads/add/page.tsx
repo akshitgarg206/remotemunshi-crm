@@ -3,24 +3,52 @@
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { createLeadSchema, type CreateLeadInput } from '@/lib/validators/leads'
-import { useCreateLead } from '@/hooks/queries/use-leads'
+import { useCreateLead, useLeadStages } from '@/hooks/queries/use-leads'
+import { apiFetch } from '@/lib/api/fetch'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
-import { LEAD_SOURCE } from '@/types/enums'
+import { Slider } from '@/components/ui/slider'
+import { Badge } from '@/components/ui/badge'
+import { LEAD_SOURCE, BUSINESS_ENTITY_TYPE, LEAD_TEMPERATURE } from '@/types/enums'
+
+interface Employee { id: string; name: string }
+interface Service { id: string; name: string }
+interface Stage { id: string; name: string; color: string; is_active: boolean }
 
 export default function AddLeadPage() {
   const router = useRouter()
   const createLead = useCreateLead()
-  const { register, handleSubmit, setValue, formState: { errors, isSubmitting } } = useForm<CreateLeadInput>({
+  const { register, handleSubmit, setValue, watch, formState: { errors, isSubmitting } } = useForm<CreateLeadInput>({
     resolver: zodResolver(createLeadSchema),
-    defaultValues: { source: 'other' },
+    defaultValues: { source: 'other', score: 50 },
   })
+
+  const { data: stagesData } = useLeadStages()
+  const stages = ((stagesData?.data as Stage[]) || []).filter(s => s.is_active)
+
+  const { data: teamData } = useQuery({
+    queryKey: ['team-for-leads'],
+    queryFn: () => apiFetch('/api/v1/team?pageSize=500'),
+  })
+  const employees = ((teamData?.data as Employee[]) || [])
+
+  const { data: servicesData } = useQuery({
+    queryKey: ['services-for-leads'],
+    queryFn: () => apiFetch('/api/v1/services?pageSize=500'),
+  })
+  const services = ((servicesData?.data as Service[]) || [])
+
+  const selectedAssignees = watch('assignee_ids') || []
+  const selectedServices = watch('service_ids') || []
+  const temperature = watch('temperature')
+  const score = watch('score') ?? 50
 
   const onSubmit = async (data: CreateLeadInput) => {
     try {
@@ -32,51 +60,211 @@ export default function AddLeadPage() {
     }
   }
 
+  function toggleItem(field: 'assignee_ids' | 'service_ids', id: string) {
+    const current = field === 'assignee_ids' ? selectedAssignees : selectedServices
+    const updated = current.includes(id) ? current.filter((x) => x !== id) : [...current, id]
+    setValue(field, updated)
+  }
+
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold tracking-tight">Add Lead</h1>
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        <Card>
-          <CardHeader><CardTitle>Lead Information</CardTitle></CardHeader>
-          <CardContent className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label>Business Name *</Label>
-              <Input {...register('business_name')} />
-              {errors.business_name && <p className="text-sm text-red-500">{errors.business_name.message}</p>}
-            </div>
-            <div className="space-y-2">
-              <Label>Contact Person</Label>
-              <Input {...register('contact_person')} />
-            </div>
-            <div className="space-y-2">
-              <Label>Phone</Label>
-              <Input {...register('contact_no')} />
-            </div>
-            <div className="space-y-2">
-              <Label>Email</Label>
-              <Input type="email" {...register('email')} />
-            </div>
-            <div className="space-y-2">
-              <Label>Source</Label>
-              <Select defaultValue="other" onValueChange={(v) => setValue('source', v as CreateLeadInput['source'])}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {LEAD_SOURCE.map((s) => (
-                    <SelectItem key={s} value={s} className="capitalize">{s.replace(/_/g, ' ')}</SelectItem>
+        <div className="grid gap-6 lg:grid-cols-2">
+          {/* Left Column */}
+          <div className="space-y-6">
+            <Card>
+              <CardHeader><CardTitle>Lead Information</CardTitle></CardHeader>
+              <CardContent className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>Business Name *</Label>
+                  <Input {...register('business_name')} />
+                  {errors.business_name && <p className="text-sm text-red-500">{errors.business_name.message}</p>}
+                </div>
+                <div className="space-y-2">
+                  <Label>Contact Person</Label>
+                  <Input {...register('contact_person')} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Phone</Label>
+                  <Input {...register('contact_no')} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Email</Label>
+                  <Input type="email" {...register('email')} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Source</Label>
+                  <Select defaultValue="other" onValueChange={(v) => setValue('source', v as CreateLeadInput['source'])}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {LEAD_SOURCE.map((s) => (
+                        <SelectItem key={s} value={s} className="capitalize">{s.replace(/_/g, ' ')}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Stage</Label>
+                  <Select onValueChange={(v) => setValue('stage_id', v)}>
+                    <SelectTrigger><SelectValue placeholder="Select stage" /></SelectTrigger>
+                    <SelectContent>
+                      {stages.map((s) => (
+                        <SelectItem key={s.id} value={s.id}>
+                          <div className="flex items-center gap-2">
+                            <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: s.color }} />
+                            {s.name}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Business Entity</Label>
+                  <Select onValueChange={(v) => setValue('business_entity', v as CreateLeadInput['business_entity'])}>
+                    <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
+                    <SelectContent>
+                      {BUSINESS_ENTITY_TYPE.map((t) => (
+                        <SelectItem key={t} value={t} className="capitalize">{t.replace(/_/g, ' ')}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Referred By</Label>
+                  <Input {...register('referred_by')} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Address</Label>
+                  <Input {...register('address')} />
+                </div>
+                <div className="space-y-2">
+                  <Label>City</Label>
+                  <Input {...register('city')} />
+                </div>
+                <div className="space-y-2">
+                  <Label>State</Label>
+                  <Input {...register('state')} />
+                </div>
+                <div className="md:col-span-2 space-y-2">
+                  <Label>Notes</Label>
+                  <Textarea {...register('notes')} rows={3} />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Assignees */}
+            <Card>
+              <CardHeader><CardTitle>Assignees</CardTitle></CardHeader>
+              <CardContent>
+                <div className="flex flex-wrap gap-2">
+                  {employees.map((emp) => (
+                    <Badge
+                      key={emp.id}
+                      variant={selectedAssignees.includes(emp.id) ? 'default' : 'outline'}
+                      className="cursor-pointer"
+                      onClick={() => toggleItem('assignee_ids', emp.id)}
+                    >
+                      {emp.name}
+                    </Badge>
                   ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Referred By</Label>
-              <Input {...register('referred_by')} />
-            </div>
-            <div className="md:col-span-2 space-y-2">
-              <Label>Notes</Label>
-              <Textarea {...register('notes')} rows={3} />
-            </div>
-          </CardContent>
-        </Card>
+                  {employees.length === 0 && <p className="text-sm text-muted-foreground">Loading team...</p>}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Services */}
+            <Card>
+              <CardHeader><CardTitle>Interested Services</CardTitle></CardHeader>
+              <CardContent>
+                <div className="flex flex-wrap gap-2">
+                  {services.map((svc) => (
+                    <Badge
+                      key={svc.id}
+                      variant={selectedServices.includes(svc.id) ? 'default' : 'outline'}
+                      className="cursor-pointer"
+                      onClick={() => toggleItem('service_ids', svc.id)}
+                    >
+                      {svc.name}
+                    </Badge>
+                  ))}
+                  {services.length === 0 && <p className="text-sm text-muted-foreground">Loading services...</p>}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Right Column */}
+          <div className="space-y-6">
+            {/* Scoring & Temperature */}
+            <Card>
+              <CardHeader><CardTitle>Scoring & Pipeline</CardTitle></CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-3">
+                  <Label>Temperature</Label>
+                  <div className="flex gap-2">
+                    {LEAD_TEMPERATURE.map((t) => (
+                      <Button
+                        key={t}
+                        type="button"
+                        variant={temperature === t ? 'default' : 'outline'}
+                        size="sm"
+                        className="capitalize"
+                        onClick={() => setValue('temperature', temperature === t ? undefined : t)}
+                      >
+                        {t === 'hot' ? '🔥' : t === 'warm' ? '☀️' : '❄️'} {t}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label>Lead Score</Label>
+                    <span className="text-sm font-medium">{score}</span>
+                  </div>
+                  <Slider
+                    value={[score]}
+                    onValueChange={([v]) => setValue('score', v)}
+                    min={0}
+                    max={100}
+                    step={5}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Deal Value (₹)</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    step={0.01}
+                    {...register('deal_value', { valueAsNumber: true })}
+                    placeholder="0.00"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Expected Close Date</Label>
+                  <Input type="date" {...register('expected_close_date')} />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Follow-up */}
+            <Card>
+              <CardHeader><CardTitle>Follow-up</CardTitle></CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Next Follow-up Date</Label>
+                  <Input type="date" {...register('next_follow_up')} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Follow-up Notes</Label>
+                  <Textarea {...register('follow_up_notes')} rows={3} placeholder="What to follow up on..." />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
         <div className="flex justify-end gap-3">
           <Button type="button" variant="outline" onClick={() => router.back()}>Cancel</Button>
           <Button type="submit" disabled={isSubmitting}>{isSubmitting ? 'Creating...' : 'Create Lead'}</Button>

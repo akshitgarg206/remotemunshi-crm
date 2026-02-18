@@ -36,6 +36,27 @@ export function useCreateLead() {
   })
 }
 
+export function useUpdateLead(id: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (data: Record<string, unknown>) =>
+      apiFetch(`/api/v1/leads/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['leads'] })
+      qc.invalidateQueries({ queryKey: ['leads', id] })
+    },
+  })
+}
+
+export function useDeleteLead() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) =>
+      apiFetch(`/api/v1/leads/${id}`, { method: 'DELETE' }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['leads'] }),
+  })
+}
+
 export function useConvertLead() {
   const qc = useQueryClient()
   return useMutation({
@@ -45,5 +66,12 @@ export function useConvertLead() {
       qc.invalidateQueries({ queryKey: ['leads'] })
       qc.invalidateQueries({ queryKey: ['clients'] })
     },
+  })
+}
+
+export function useLeadStages() {
+  return useQuery({
+    queryKey: ['settings', 'lead-stages'],
+    queryFn: () => apiFetch('/api/v1/settings/lead-stages'),
   })
 }
