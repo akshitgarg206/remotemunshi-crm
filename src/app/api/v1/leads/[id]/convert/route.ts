@@ -74,23 +74,41 @@ export const POST = apiHandler(async (req, { params, supabase, employeeId }) => 
     )
   }
 
-  // Copy services
-  const { data: leadServices } = await supabase
-    .from('lead_services')
-    .select('service_id')
+  // Copy bundles
+  const { data: leadBundles } = await supabase
+    .from('lead_bundles')
+    .select('bundle_id')
     .eq('lead_id', params.id)
 
-  if (leadServices?.length) {
-    await supabase.from('client_services').insert(
-      leadServices.map((ls) => ({
+  if (leadBundles?.length) {
+    await supabase.from('client_bundles').insert(
+      leadBundles.map((lb) => ({
         client_id: client.id,
-        service_id: ls.service_id,
+        bundle_id: lb.bundle_id,
+        is_active: true,
       }))
     )
   }
 
-  // Auto-create onboarding tasks for the converted client (non-blocking)
-  const convertedServiceIds = (leadServices || []).map((ls: { service_id: string }) => ls.service_id)
+  // Also copy individual services from bundles for onboarding tasks
+  const bundleIds = (leadBundles || []).map((lb: { bundle_id: string }) => lb.bundle_id)
+  let convertedServiceIds: string[] = []
+  if (bundleIds.length) {
+    const { data: bundleItems } = await supabase
+      .from('service_bundle_items')
+      .select('service_id')
+      .in('bundle_id', bundleIds)
+    convertedServiceIds = [...new Set((bundleItems || []).map((bi: { service_id: string }) => bi.service_id))]
+    // Also create client_services from bundle services
+    if (convertedServiceIds.length) {
+      await supabase.from('client_services').insert(
+        convertedServiceIds.map((sid) => ({
+          client_id: client.id,
+          service_id: sid,
+        }))
+      )
+    }
+  }
   try {
     await generateOnboardingTasks({
       clientId: client.id,

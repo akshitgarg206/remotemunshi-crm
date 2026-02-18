@@ -3,7 +3,7 @@
 import { useDraggable } from '@dnd-kit/core'
 import { useRouter } from 'next/navigation'
 import { Badge } from '@/components/ui/badge'
-import { DollarSign, Calendar } from 'lucide-react'
+import { Calendar } from 'lucide-react'
 import { format } from 'date-fns'
 
 const temperatureDots: Record<string, string> = {
@@ -16,7 +16,6 @@ export interface LeadCardItem {
   id: string
   business_name: string
   contact_person: string | null
-  deal_value: number | null
   temperature: string | null
   next_follow_up: string | null
   stage_id: string | null
@@ -77,14 +76,6 @@ export function LeadKanbanCard({ lead, isDragSource, isOverlay }: LeadKanbanCard
             <span className={`inline-block size-2 rounded-full ${temperatureDots[lead.temperature] || 'bg-gray-400'}`}
               title={lead.temperature}
             />
-          )}
-          {lead.deal_value != null && lead.deal_value > 0 && (
-            <span className="text-[11px] text-muted-foreground flex items-center gap-0.5">
-              <DollarSign className="h-3 w-3" />
-              {Number(lead.deal_value) >= 100000
-                ? `${(Number(lead.deal_value) / 100000).toFixed(1)}L`
-                : Number(lead.deal_value).toLocaleString('en-IN')}
-            </span>
           )}
           {lead.next_follow_up && (
             <span className={`text-[11px] flex items-center gap-0.5 ${isOverdue ? 'text-red-600 dark:text-red-400 font-medium' : 'text-muted-foreground'}`}>

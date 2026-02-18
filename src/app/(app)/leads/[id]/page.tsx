@@ -11,7 +11,6 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Slider } from '@/components/ui/slider'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Separator } from '@/components/ui/separator'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -24,13 +23,13 @@ import { toast } from 'sonner'
 import { format } from 'date-fns'
 import {
   ArrowLeft, UserCheck, Trash2, Pencil, Phone, Mail, Globe,
-  User, Calendar, StickyNote, Briefcase, Thermometer, Target,
-  DollarSign, Clock, MapPin, Plus,
+  User, Calendar, StickyNote, Briefcase, Thermometer,
+  Clock, MapPin, Plus, Package,
 } from 'lucide-react'
 import { LEAD_SOURCE, BUSINESS_ENTITY_TYPE, LEAD_TEMPERATURE } from '@/types/enums'
 
 interface LeadStage { id: string; name: string; color: string }
-interface LeadService { service_id: string; services: { id: string; name: string } }
+interface LeadBundle { bundle_id: string; service_bundles: { id: string; name: string } }
 interface LeadAssignee { employee_id: string; employees: { id: string; name: string; email?: string } }
 interface Lead {
   id: string
@@ -46,9 +45,7 @@ interface Lead {
   city: string | null
   state: string | null
   notes: string | null
-  score: number | null
   temperature: string | null
-  deal_value: number | null
   expected_close_date: string | null
   next_follow_up: string | null
   follow_up_notes: string | null
@@ -56,7 +53,7 @@ interface Lead {
   converted_client_id: string | null
   created_at: string
   lead_stages: LeadStage | null
-  lead_services: LeadService[]
+  lead_bundles: LeadBundle[]
   lead_assignees: LeadAssignee[]
 }
 
@@ -195,33 +192,18 @@ export default function LeadDetailPage() {
 
             {/* Right sidebar */}
             <div className="space-y-6">
-              {/* Scoring Card */}
-              <Card>
-                <CardHeader><CardTitle className="flex items-center gap-2"><Target className="h-4 w-4" /> Scoring & Deal</CardTitle></CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Score</span>
-                    <div className="flex items-center gap-2">
-                      <div className="w-24 h-2 rounded-full bg-muted overflow-hidden">
-                        <div className="h-full rounded-full bg-primary" style={{ width: `${lead.score || 0}%` }} />
-                      </div>
-                      <span className="text-sm font-medium">{lead.score ?? 0}</span>
-                    </div>
-                  </div>
-                  {lead.deal_value != null && (
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground flex items-center gap-1"><DollarSign className="h-3 w-3" /> Deal Value</span>
-                      <span className="text-sm font-medium">₹{Number(lead.deal_value).toLocaleString('en-IN')}</span>
-                    </div>
-                  )}
-                  {lead.expected_close_date && (
+              {/* Pipeline Card */}
+              {lead.expected_close_date && (
+                <Card>
+                  <CardHeader><CardTitle className="flex items-center gap-2"><Thermometer className="h-4 w-4" /> Pipeline</CardTitle></CardHeader>
+                  <CardContent className="space-y-3">
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-muted-foreground">Expected Close</span>
                       <span className="text-sm font-medium">{format(new Date(lead.expected_close_date), 'dd MMM yyyy')}</span>
                     </div>
-                  )}
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              )}
 
               {/* Follow-up Card */}
               {(lead.next_follow_up || lead.follow_up_notes) && (
@@ -241,17 +223,17 @@ export default function LeadDetailPage() {
                 </Card>
               )}
 
-              {/* Services Card */}
+              {/* Service Packages Card */}
               <Card>
-                <CardHeader><CardTitle className="flex items-center gap-2"><Briefcase className="h-4 w-4" /> Services</CardTitle></CardHeader>
+                <CardHeader><CardTitle className="flex items-center gap-2"><Package className="h-4 w-4" /> Service Packages</CardTitle></CardHeader>
                 <CardContent>
-                  {lead.lead_services?.length > 0 ? (
+                  {lead.lead_bundles?.length > 0 ? (
                     <div className="flex flex-wrap gap-2">
-                      {lead.lead_services.map((ls) => (
-                        <Badge key={ls.service_id} variant="outline">{ls.services?.name}</Badge>
+                      {lead.lead_bundles.map((lb) => (
+                        <Badge key={lb.bundle_id} variant="outline">{lb.service_bundles?.name}</Badge>
                       ))}
                     </div>
-                  ) : <p className="text-sm text-muted-foreground">No services listed</p>}
+                  ) : <p className="text-sm text-muted-foreground">No service packages listed</p>}
                 </CardContent>
               </Card>
 
@@ -329,9 +311,7 @@ function EditLeadDialog({ lead, open, onOpenChange, onSave }: {
     city: lead.city || '',
     state: lead.state || '',
     notes: lead.notes || '',
-    score: lead.score ?? 50,
     temperature: lead.temperature || '',
-    deal_value: lead.deal_value ?? '',
     expected_close_date: lead.expected_close_date || '',
     next_follow_up: lead.next_follow_up || '',
     follow_up_notes: lead.follow_up_notes || '',
@@ -354,9 +334,7 @@ function EditLeadDialog({ lead, open, onOpenChange, onSave }: {
         city: lead.city || '',
         state: lead.state || '',
         notes: lead.notes || '',
-        score: lead.score ?? 50,
         temperature: lead.temperature || '',
-        deal_value: lead.deal_value ?? '',
         expected_close_date: lead.expected_close_date || '',
         next_follow_up: lead.next_follow_up || '',
         follow_up_notes: lead.follow_up_notes || '',
@@ -373,8 +351,6 @@ function EditLeadDialog({ lead, open, onOpenChange, onSave }: {
       if (payload.stage_id === '') delete payload.stage_id
       if (payload.business_entity === '') delete payload.business_entity
       if (payload.temperature === '') delete payload.temperature
-      if (payload.deal_value === '') delete payload.deal_value
-      else payload.deal_value = Number(payload.deal_value)
       if (payload.expected_close_date === '') delete payload.expected_close_date
       if (payload.next_follow_up === '') delete payload.next_follow_up
       await onSave(payload)
@@ -444,17 +420,6 @@ function EditLeadDialog({ lead, open, onOpenChange, onSave }: {
                   ))}
                 </SelectContent>
               </Select>
-            </div>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label>Score</Label>
-                <span className="text-sm text-muted-foreground">{form.score}</span>
-              </div>
-              <Slider value={[form.score]} onValueChange={([v]) => setForm({ ...form, score: v })} min={0} max={100} step={5} />
-            </div>
-            <div className="space-y-2">
-              <Label>Deal Value (₹)</Label>
-              <Input type="number" min={0} step={0.01} value={form.deal_value} onChange={(e) => setForm({ ...form, deal_value: e.target.value ? Number(e.target.value) : '' })} />
             </div>
             <div className="space-y-2">
               <Label>Expected Close</Label>

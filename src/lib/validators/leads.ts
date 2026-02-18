@@ -20,11 +20,8 @@ export const createLeadSchema = z.object({
   state: z.string().optional(),
   notes: z.string().optional(),
   assignee_ids: z.array(z.string().uuid()).optional(),
-  service_ids: z.array(z.string().uuid()).optional(),
-  // New fields
-  score: z.number().int().min(0).max(100).optional(),
+  bundle_ids: z.array(z.string().uuid()).optional(),
   temperature: z.enum(['hot', 'warm', 'cold']).optional(),
-  deal_value: z.number().min(0).optional(),
   expected_close_date: z.string().optional(),
   next_follow_up: z.string().optional(),
   follow_up_notes: z.string().optional(),

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { ColumnDef } from '@tanstack/react-table'
-import { UserPlus, Users, UserCheck, TrendingUp, Flame, DollarSign, Clock, LayoutGrid, List } from 'lucide-react'
+import { UserPlus, Users, UserCheck, TrendingUp, Flame, Clock, LayoutGrid, List } from 'lucide-react'
 import { DataGrid } from '@/components/data-grid/data-grid'
 import { CsvImporter } from '@/components/csv-import/csv-importer'
 import { KpiCard } from '@/components/kpi-cards/kpi-card'
@@ -49,10 +49,6 @@ const columns: ColumnDef<Record<string, unknown>>[] = [
     if (!t) return '-'
     const icon = t === 'hot' ? '🔥' : t === 'warm' ? '☀️' : '❄️'
     return <span className="capitalize">{icon} {t}</span>
-  }},
-  { accessorKey: 'deal_value', header: 'Deal Value', cell: ({ row }) => {
-    const v = row.getValue('deal_value') as number | null
-    return v != null ? `₹${Number(v).toLocaleString('en-IN')}` : '-'
   }},
   { accessorKey: 'next_follow_up', header: 'Follow-up', cell: ({ row }) => {
     const d = row.getValue('next_follow_up') as string | null
@@ -147,7 +143,7 @@ export default function LeadsPage() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <KpiCard title="Total Leads" value={kpis?.total_leads ?? 0} icon={Users} color="bg-primary" />
         <KpiCard title="Hot Leads" value={kpis?.hot_leads ?? 0} icon={Flame} color="bg-red-500" />
-        <KpiCard title="Pipeline Value" value={`₹${((kpis?.pipeline_value ?? 0) / 100000).toFixed(1)}L`} icon={DollarSign} color="bg-green-500" />
+        <KpiCard title="Conversion Rate" value={`${kpis?.conversion_rate ?? 0}%`} icon={TrendingUp} color="bg-green-500" />
         <KpiCard title="Follow-ups Due" value={kpis?.follow_ups_due ?? 0} icon={Clock} color="bg-yellow-500" />
       </div>
 
@@ -221,7 +217,6 @@ export default function LeadsPage() {
             id: l.id as string,
             business_name: l.business_name as string,
             contact_person: l.contact_person as string | null,
-            deal_value: l.deal_value as number | null,
             temperature: l.temperature as string | null,
             next_follow_up: l.next_follow_up as string | null,
             stage_id: l.stage_id as string | null,

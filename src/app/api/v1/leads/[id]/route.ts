@@ -9,7 +9,7 @@ export const GET = apiHandler(async (req, { params, supabase }) => {
     .select(`
       *,
       lead_assignees(employee_id, employees(id, name, email)),
-      lead_services(service_id, services(id, name)),
+      lead_bundles(bundle_id, service_bundles(id, name)),
       lead_stages(id, name, color)
     `)
     .eq('id', params.id)
@@ -32,12 +32,12 @@ export const GET = apiHandler(async (req, { params, supabase }) => {
 export const PUT = apiHandler(async (req, { params, supabase, employeeId }) => {
   const body = await req.json()
   const validated = updateLeadSchema.parse(body)
-  const { assignee_ids, service_ids, ...leadData } = validated
+  const { assignee_ids, bundle_ids, ...leadData } = validated
 
   // Fetch old values for activity logging (especially stage changes)
   const { data: oldLead } = await supabase
     .from('leads')
-    .select('stage_id, temperature, score, deal_value')
+    .select('stage_id, temperature')
     .eq('id', params.id)
     .single()
 
@@ -81,11 +81,11 @@ export const PUT = apiHandler(async (req, { params, supabase, employeeId }) => {
     }
   }
 
-  if (service_ids !== undefined) {
-    await supabase.from('lead_services').delete().eq('lead_id', params.id)
-    if (service_ids.length) {
-      await supabase.from('lead_services').insert(
-        service_ids.map((sid) => ({ lead_id: params.id, service_id: sid }))
+  if (bundle_ids !== undefined) {
+    await supabase.from('lead_bundles').delete().eq('lead_id', params.id)
+    if (bundle_ids.length) {
+      await supabase.from('lead_bundles').insert(
+        bundle_ids.map((bid) => ({ lead_id: params.id, bundle_id: bid }))
       )
     }
   }

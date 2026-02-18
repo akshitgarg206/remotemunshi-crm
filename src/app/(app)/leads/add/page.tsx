@@ -14,12 +14,11 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
-import { Slider } from '@/components/ui/slider'
 import { Badge } from '@/components/ui/badge'
 import { LEAD_SOURCE, BUSINESS_ENTITY_TYPE, LEAD_TEMPERATURE } from '@/types/enums'
 
 interface Employee { id: string; name: string }
-interface Service { id: string; name: string }
+interface Bundle { id: string; name: string }
 interface Stage { id: string; name: string; color: string; is_active: boolean }
 
 export default function AddLeadPage() {
@@ -27,7 +26,7 @@ export default function AddLeadPage() {
   const createLead = useCreateLead()
   const { register, handleSubmit, setValue, watch, formState: { errors, isSubmitting } } = useForm<CreateLeadInput>({
     resolver: zodResolver(createLeadSchema),
-    defaultValues: { source: 'other', score: 50 },
+    defaultValues: { source: 'other' },
   })
 
   const { data: stagesData } = useLeadStages()
@@ -39,16 +38,15 @@ export default function AddLeadPage() {
   })
   const employees = ((teamData?.data as Employee[]) || [])
 
-  const { data: servicesData } = useQuery({
-    queryKey: ['services-for-leads'],
-    queryFn: () => apiFetch('/api/v1/services?pageSize=500'),
+  const { data: bundlesData } = useQuery({
+    queryKey: ['bundles-for-leads'],
+    queryFn: () => apiFetch('/api/v1/bundles?pageSize=500'),
   })
-  const services = ((servicesData?.data as Service[]) || [])
+  const bundles = ((bundlesData?.data as Bundle[]) || [])
 
   const selectedAssignees = watch('assignee_ids') || []
-  const selectedServices = watch('service_ids') || []
+  const selectedBundles = watch('bundle_ids') || []
   const temperature = watch('temperature')
-  const score = watch('score') ?? 50
 
   const onSubmit = async (data: CreateLeadInput) => {
     try {
@@ -60,8 +58,8 @@ export default function AddLeadPage() {
     }
   }
 
-  function toggleItem(field: 'assignee_ids' | 'service_ids', id: string) {
-    const current = field === 'assignee_ids' ? selectedAssignees : selectedServices
+  function toggleItem(field: 'assignee_ids' | 'bundle_ids', id: string) {
+    const current = field === 'assignee_ids' ? selectedAssignees : selectedBundles
     const updated = current.includes(id) ? current.filter((x) => x !== id) : [...current, id]
     setValue(field, updated)
   }
@@ -174,22 +172,22 @@ export default function AddLeadPage() {
               </CardContent>
             </Card>
 
-            {/* Services */}
+            {/* Service Packages */}
             <Card>
-              <CardHeader><CardTitle>Interested Services</CardTitle></CardHeader>
+              <CardHeader><CardTitle>Interested Service Packages</CardTitle></CardHeader>
               <CardContent>
                 <div className="flex flex-wrap gap-2">
-                  {services.map((svc) => (
+                  {bundles.map((b) => (
                     <Badge
-                      key={svc.id}
-                      variant={selectedServices.includes(svc.id) ? 'default' : 'outline'}
+                      key={b.id}
+                      variant={selectedBundles.includes(b.id) ? 'default' : 'outline'}
                       className="cursor-pointer"
-                      onClick={() => toggleItem('service_ids', svc.id)}
+                      onClick={() => toggleItem('bundle_ids', b.id)}
                     >
-                      {svc.name}
+                      {b.name}
                     </Badge>
                   ))}
-                  {services.length === 0 && <p className="text-sm text-muted-foreground">Loading services...</p>}
+                  {bundles.length === 0 && <p className="text-sm text-muted-foreground">Loading service packages...</p>}
                 </div>
               </CardContent>
             </Card>
@@ -197,9 +195,9 @@ export default function AddLeadPage() {
 
           {/* Right Column */}
           <div className="space-y-6">
-            {/* Scoring & Temperature */}
+            {/* Temperature & Pipeline */}
             <Card>
-              <CardHeader><CardTitle>Scoring & Pipeline</CardTitle></CardHeader>
+              <CardHeader><CardTitle>Temperature & Pipeline</CardTitle></CardHeader>
               <CardContent className="space-y-6">
                 <div className="space-y-3">
                   <Label>Temperature</Label>
@@ -217,29 +215,6 @@ export default function AddLeadPage() {
                       </Button>
                     ))}
                   </div>
-                </div>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <Label>Lead Score</Label>
-                    <span className="text-sm font-medium">{score}</span>
-                  </div>
-                  <Slider
-                    value={[score]}
-                    onValueChange={([v]) => setValue('score', v)}
-                    min={0}
-                    max={100}
-                    step={5}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Deal Value (₹)</Label>
-                  <Input
-                    type="number"
-                    min={0}
-                    step={0.01}
-                    {...register('deal_value', { valueAsNumber: true })}
-                    placeholder="0.00"
-                  />
                 </div>
                 <div className="space-y-2">
                   <Label>Expected Close Date</Label>

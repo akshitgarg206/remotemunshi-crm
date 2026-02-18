@@ -11,7 +11,7 @@ export const GET = apiHandler(async (req, { supabase }) => {
 
   let query = supabase
     .from('leads')
-    .select('*, lead_assignees(employee_id), lead_services(service_id), lead_stages(name, color)', { count: 'exact' })
+    .select('*, lead_assignees(employee_id), lead_bundles(bundle_id), lead_stages(name, color)', { count: 'exact' })
     .is('deleted_at', null)
 
   if (search) {
@@ -40,7 +40,7 @@ export const GET = apiHandler(async (req, { supabase }) => {
 export const POST = apiHandler(async (req, { supabase, employeeId }) => {
   const body = await req.json()
   const validated = createLeadSchema.parse(body)
-  const { assignee_ids, service_ids, ...leadData } = validated
+  const { assignee_ids, bundle_ids, ...leadData } = validated
 
   const { data: lead, error } = await supabase
     .from('leads')
@@ -56,9 +56,9 @@ export const POST = apiHandler(async (req, { supabase, employeeId }) => {
     )
   }
 
-  if (service_ids?.length) {
-    await supabase.from('lead_services').insert(
-      service_ids.map((sid) => ({ lead_id: lead.id, service_id: sid }))
+  if (bundle_ids?.length) {
+    await supabase.from('lead_bundles').insert(
+      bundle_ids.map((bid) => ({ lead_id: lead.id, bundle_id: bid }))
     )
   }
 
