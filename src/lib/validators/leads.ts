@@ -5,7 +5,10 @@ export const createLeadSchema = z.object({
   contact_person: z.string().optional(),
   contact_no: z.string().optional(),
   email: z.string().email().optional().or(z.literal('')),
-  source: z.enum(['website', 'referral', 'social_media', 'cold_call', 'walk_in', 'other']).default('other'),
+  source: z.enum([
+    'website', 'referral', 'social_media', 'cold_call', 'walk_in',
+    'linkedin', 'reddit', 'outlook', 'whatsapp', 'email', 'meeting', 'other'
+  ]).default('other'),
   stage_id: z.string().uuid().optional(),
   referred_by: z.string().optional(),
   business_entity: z.enum([
@@ -18,6 +21,16 @@ export const createLeadSchema = z.object({
   notes: z.string().optional(),
   assignee_ids: z.array(z.string().uuid()).optional(),
   service_ids: z.array(z.string().uuid()).optional(),
+  // New fields
+  score: z.number().int().min(0).max(100).optional(),
+  temperature: z.enum(['hot', 'warm', 'cold']).optional(),
+  deal_value: z.number().min(0).optional(),
+  expected_close_date: z.string().optional(),
+  next_follow_up: z.string().optional(),
+  follow_up_notes: z.string().optional(),
+  external_source: z.string().optional(),
+  external_id: z.string().optional(),
+  external_metadata: z.record(z.string(), z.unknown()).optional(),
 })
 
 export const updateLeadSchema = createLeadSchema.partial()

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { apiHandler } from '@/lib/api/handler'
 import { updateLeadSchema } from '@/lib/validators/leads'
+import { logActivity } from '@/lib/api/log-activity'
 
 export const GET = apiHandler(async (req, { params, supabase }) => {
   const { data, error } = await supabase
@@ -28,10 +29,17 @@ export const GET = apiHandler(async (req, { params, supabase }) => {
   return NextResponse.json({ success: true, data })
 }, { requirePermission: { module: 'leads', action: 'read' } })
 
-export const PUT = apiHandler(async (req, { params, supabase }) => {
+export const PUT = apiHandler(async (req, { params, supabase, employeeId }) => {
   const body = await req.json()
   const validated = updateLeadSchema.parse(body)
   const { assignee_ids, service_ids, ...leadData } = validated
+
+  // Fetch old values for activity logging (especially stage changes)
+  const { data: oldLead } = await supabase
+    .from('leads')
+    .select('stage_id, temperature, score, deal_value')
+    .eq('id', params.id)
+    .single()
 
   const { data, error } = await supabase
     .from('leads')
@@ -42,6 +50,27 @@ export const PUT = apiHandler(async (req, { params, supabase }) => {
     .single()
 
   if (error) throw error
+
+  // Log activity for significant changes
+  const changes: Record<string, unknown> = {}
+  if (leadData.stage_id && oldLead && leadData.stage_id !== oldLead.stage_id) {
+    changes.stage_id = { old: oldLead.stage_id, new: leadData.stage_id }
+  }
+  if (leadData.temperature && oldLead && leadData.temperature !== oldLead.temperature) {
+    changes.temperature = { old: oldLead.temperature, new: leadData.temperature }
+  }
+
+  await logActivity(supabase, {
+    employeeId,
+    action: Object.keys(changes).includes('stage_id') ? 'lead_stage_changed' : 'lead_updated',
+    entityType: 'lead',
+    entityId: params.id,
+    oldValues: oldLead,
+    newValues: leadData,
+    description: Object.keys(changes).includes('stage_id')
+      ? `Changed lead stage`
+      : `Updated lead`,
+  })
 
   if (assignee_ids !== undefined) {
     await supabase.from('lead_assignees').delete().eq('lead_id', params.id)

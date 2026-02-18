@@ -1,8 +1,11 @@
 export const EMPLOYEE_STATUS = ['active', 'inactive', 'on_leave', 'terminated'] as const
 export type EmployeeStatus = typeof EMPLOYEE_STATUS[number]
 
-export const LEAD_SOURCE = ['website', 'referral', 'social_media', 'cold_call', 'walk_in', 'other'] as const
+export const LEAD_SOURCE = ['website', 'referral', 'social_media', 'cold_call', 'walk_in', 'linkedin', 'reddit', 'outlook', 'whatsapp', 'email', 'meeting', 'other'] as const
 export type LeadSource = typeof LEAD_SOURCE[number]
+
+export const LEAD_TEMPERATURE = ['hot', 'warm', 'cold'] as const
+export type LeadTemperature = typeof LEAD_TEMPERATURE[number]
 
 export const BUSINESS_ENTITY_TYPE = [
   'proprietorship', 'partnership', 'llp', 'pvt_ltd', 'public_ltd',

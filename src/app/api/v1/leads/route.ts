@@ -3,10 +3,11 @@ import { apiHandler } from '@/lib/api/handler'
 import { parsePagination, paginationMeta } from '@/lib/api/pagination'
 import { parseFilters } from '@/lib/api/filters'
 import { createLeadSchema } from '@/lib/validators/leads'
+import { logActivity } from '@/lib/api/log-activity'
 
 export const GET = apiHandler(async (req, { supabase }) => {
   const { page, pageSize, offset, sortBy, sortOrder, search } = parsePagination(req)
-  const filters = parseFilters(req, ['source', 'stage_id', 'created_by'])
+  const filters = parseFilters(req, ['source', 'stage_id', 'created_by', 'temperature', 'next_follow_up_before'])
 
   let query = supabase
     .from('leads')
@@ -20,6 +21,8 @@ export const GET = apiHandler(async (req, { supabase }) => {
   if (filters.source) query = query.eq('source', filters.source)
   if (filters.stage_id) query = query.eq('stage_id', filters.stage_id)
   if (filters.created_by) query = query.eq('created_by', filters.created_by)
+  if (filters.temperature) query = query.eq('temperature', filters.temperature)
+  if (filters.next_follow_up_before) query = query.lte('next_follow_up', filters.next_follow_up_before)
 
   query = query.order(sortBy, { ascending: sortOrder === 'asc' })
   query = query.range(offset, offset + pageSize - 1)
@@ -58,6 +61,15 @@ export const POST = apiHandler(async (req, { supabase, employeeId }) => {
       service_ids.map((sid) => ({ lead_id: lead.id, service_id: sid }))
     )
   }
+
+  await logActivity(supabase, {
+    employeeId,
+    action: 'lead_created',
+    entityType: 'lead',
+    entityId: lead.id,
+    newValues: leadData,
+    description: `Created lead: ${leadData.business_name}`,
+  })
 
   return NextResponse.json({ success: true, data: lead }, { status: 201 })
 }, { requirePermission: { module: 'leads', action: 'create' } })
