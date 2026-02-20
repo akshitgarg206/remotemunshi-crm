@@ -102,12 +102,18 @@ export function apiHandler(handler: HandlerFn, options: ApiHandlerOptions = { re
       }
 
       console.error('API Error:', error)
+      const message =
+        error instanceof Error
+          ? error.message
+          : typeof error === 'object' && error !== null && 'message' in error
+            ? String((error as { message: unknown }).message)
+            : 'An unexpected error occurred'
       return NextResponse.json(
         {
           success: false,
           error: {
             code: 'INTERNAL_ERROR',
-            message: error instanceof Error ? error.message : 'An unexpected error occurred',
+            message,
           },
         },
         { status: 500 }
