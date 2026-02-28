@@ -37,7 +37,7 @@ export const PUT = apiHandler(async (req, { params, supabase, employeeId }) => {
   // Fetch old values for activity logging (especially stage changes)
   const { data: oldLead } = await supabase
     .from('leads')
-    .select('stage_id, temperature')
+    .select('stage_id, temperature, is_active')
     .eq('id', params.id)
     .single()
 
@@ -59,17 +59,30 @@ export const PUT = apiHandler(async (req, { params, supabase, employeeId }) => {
   if (leadData.temperature && oldLead && leadData.temperature !== oldLead.temperature) {
     changes.temperature = { old: oldLead.temperature, new: leadData.temperature }
   }
+  if (leadData.is_active !== undefined && oldLead && leadData.is_active !== oldLead.is_active) {
+    changes.is_active = { old: oldLead.is_active, new: leadData.is_active }
+  }
+
+  const action = Object.keys(changes).includes('stage_id')
+    ? 'lead_stage_changed'
+    : Object.keys(changes).includes('is_active')
+    ? 'lead_status_changed'
+    : 'lead_updated'
+
+  const description = Object.keys(changes).includes('stage_id')
+    ? `Changed lead stage`
+    : Object.keys(changes).includes('is_active')
+    ? `Marked lead as ${leadData.is_active ? 'active' : 'inactive'}`
+    : `Updated lead`
 
   await logActivity(supabase, {
     employeeId,
-    action: Object.keys(changes).includes('stage_id') ? 'lead_stage_changed' : 'lead_updated',
+    action,
     entityType: 'lead',
     entityId: params.id,
     oldValues: oldLead,
     newValues: leadData,
-    description: Object.keys(changes).includes('stage_id')
-      ? `Changed lead stage`
-      : `Updated lead`,
+    description,
   })
 
   if (assignee_ids !== undefined) {

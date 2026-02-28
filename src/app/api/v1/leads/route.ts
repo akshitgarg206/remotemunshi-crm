@@ -7,7 +7,7 @@ import { logActivity } from '@/lib/api/log-activity'
 
 export const GET = apiHandler(async (req, { supabase }) => {
   const { page, pageSize, offset, sortBy, sortOrder, search } = parsePagination(req)
-  const filters = parseFilters(req, ['source', 'stage_id', 'created_by', 'temperature', 'next_follow_up_before'])
+  const filters = parseFilters(req, ['source', 'stage_id', 'created_by', 'temperature', 'next_follow_up_before', 'is_active'])
 
   let query = supabase
     .from('leads')
@@ -23,6 +23,7 @@ export const GET = apiHandler(async (req, { supabase }) => {
   if (filters.created_by) query = query.eq('created_by', filters.created_by)
   if (filters.temperature) query = query.eq('temperature', filters.temperature)
   if (filters.next_follow_up_before) query = query.lte('next_follow_up', filters.next_follow_up_before)
+  if (filters.is_active !== undefined) query = query.eq('is_active', filters.is_active === 'true')
 
   query = query.order(sortBy, { ascending: sortOrder === 'asc' })
   query = query.range(offset, offset + pageSize - 1)

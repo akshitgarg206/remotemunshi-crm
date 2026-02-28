@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { ColumnDef } from '@tanstack/react-table'
-import { UserPlus, Users, UserCheck, TrendingUp, Flame, Clock, LayoutGrid, List } from 'lucide-react'
+import { UserPlus, Users, UserCheck, TrendingUp, Flame, Clock, LayoutGrid, List, ChevronDown, ChevronRight, Archive } from 'lucide-react'
 import { DataGrid } from '@/components/data-grid/data-grid'
 import { CsvImporter } from '@/components/csv-import/csv-importer'
 import { KpiCard } from '@/components/kpi-cards/kpi-card'
@@ -72,6 +72,9 @@ export default function LeadsPage() {
   const [stageFilter, setStageFilter] = useState<string>('__all__')
   const [tempFilter, setTempFilter] = useState<string>('__all__')
   const [followUpFilter, setFollowUpFilter] = useState<string>('__all__')
+  const [inactiveOpen, setInactiveOpen] = useState(false)
+  const [inactivePage, setInactivePage] = useState(1)
+  const [inactiveSearch, setInactiveSearch] = useState('')
 
   // Persist view preference
   useEffect(() => {
@@ -80,9 +83,9 @@ export default function LeadsPage() {
   }, [])
   useEffect(() => { localStorage.setItem('leads-view', view) }, [view])
 
-  // Build filter params
+  // Build filter params (active leads only)
   const filterParams: Record<string, string | number | undefined> = {
-    page, pageSize: 20, search: search || undefined,
+    page, pageSize: 20, search: search || undefined, is_active: 'true',
   }
   if (sourceFilter !== '__all__') filterParams.source = sourceFilter
   if (stageFilter !== '__all__') filterParams.stage_id = stageFilter
@@ -101,12 +104,17 @@ export default function LeadsPage() {
   }
 
   const { data: leadsData, isLoading } = useLeads(filterParams)
-  // For board view, fetch all leads (no pagination)
+  // For board view, fetch all active leads (no pagination)
   const { data: allLeadsData } = useLeads(
-    view === 'board' ? { pageSize: 500, search: search || undefined,
+    view === 'board' ? { pageSize: 500, search: search || undefined, is_active: 'true',
       ...(sourceFilter !== '__all__' ? { source: sourceFilter } : {}),
       ...(tempFilter !== '__all__' ? { temperature: tempFilter } : {}),
     } : undefined
+  )
+
+  // Inactive leads query (only when section is open)
+  const { data: inactiveData, isLoading: inactiveLoading } = useLeads(
+    inactiveOpen ? { page: inactivePage, pageSize: 20, search: inactiveSearch || undefined, is_active: 'false' } : undefined
   )
   const { data: kpiData } = useLeadKpis()
   const { data: stagesData } = useLeadStages()
@@ -210,6 +218,37 @@ export default function LeadsPage() {
             onPageChange={setPage}
           />
           <CsvImporter module="leads" open={importOpen} onOpenChange={setImportOpen} />
+
+          {/* Inactive Leads Collapsible Section */}
+          <div className="border rounded-lg">
+            <button
+              className="flex items-center gap-2 w-full px-4 py-3 text-left hover:bg-muted/50 transition-colors"
+              onClick={() => setInactiveOpen(!inactiveOpen)}
+            >
+              {inactiveOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+              <Archive className="h-4 w-4 text-muted-foreground" />
+              <span className="font-medium text-sm">Inactive Leads</span>
+              {inactiveData?.meta?.total !== undefined && (
+                <Badge variant="secondary" className="ml-1 text-xs">{inactiveData.meta.total}</Badge>
+              )}
+            </button>
+            {inactiveOpen && (
+              <div className="border-t px-4 pb-4">
+                <DataGrid
+                  columns={columns}
+                  data={(inactiveData?.data as Record<string, unknown>[]) || []}
+                  isLoading={inactiveLoading}
+                  searchPlaceholder="Search inactive leads..."
+                  onSearch={setInactiveSearch}
+                  onRowClick={(row) => router.push('/leads/' + (row as Record<string, unknown>).id)}
+                  page={inactivePage}
+                  pageCount={inactiveData?.meta?.totalPages || 1}
+                  totalItems={inactiveData?.meta?.total}
+                  onPageChange={setInactivePage}
+                />
+              </div>
+            )}
+          </div>
         </>
       ) : (
         <LeadKanbanBoard

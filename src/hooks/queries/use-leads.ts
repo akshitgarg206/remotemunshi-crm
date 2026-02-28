@@ -57,6 +57,19 @@ export function useDeleteLead() {
   })
 }
 
+export function useToggleLeadActive(id: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (is_active: boolean) =>
+      apiFetch(`/api/v1/leads/${id}`, { method: 'PUT', body: JSON.stringify({ is_active }) }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['leads'] })
+      qc.invalidateQueries({ queryKey: ['leads', id] })
+      qc.invalidateQueries({ queryKey: ['leads', 'kpi'] })
+    },
+  })
+}
+
 export function useConvertLead() {
   const qc = useQueryClient()
   return useMutation({

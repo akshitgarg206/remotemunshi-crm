@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import { apiFetch } from '@/lib/api/fetch'
-import { useUpdateLead, useDeleteLead, useConvertLead, useLeadStages } from '@/hooks/queries/use-leads'
+import { useUpdateLead, useDeleteLead, useConvertLead, useLeadStages, useToggleLeadActive } from '@/hooks/queries/use-leads'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -13,6 +13,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Separator } from '@/components/ui/separator'
+import { Switch } from '@/components/ui/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -24,7 +25,7 @@ import { format } from 'date-fns'
 import {
   ArrowLeft, UserCheck, Trash2, Pencil, Phone, Mail, Globe,
   User, Calendar, StickyNote, Briefcase, Thermometer,
-  Clock, MapPin, Plus, Package,
+  Clock, MapPin, Plus, Package, Archive,
 } from 'lucide-react'
 import { LEAD_SOURCE, BUSINESS_ENTITY_TYPE, LEAD_TEMPERATURE } from '@/types/enums'
 
@@ -50,6 +51,7 @@ interface Lead {
   next_follow_up: string | null
   follow_up_notes: string | null
   external_source: string | null
+  is_active: boolean
   converted_client_id: string | null
   created_at: string
   lead_stages: LeadStage | null
@@ -78,6 +80,7 @@ export default function LeadDetailPage() {
   const updateLead = useUpdateLead(leadId)
   const deleteLead = useDeleteLead()
   const convertLead = useConvertLead()
+  const toggleActive = useToggleLeadActive(leadId)
 
   const lead = data?.data as Lead | undefined
 
@@ -122,6 +125,21 @@ export default function LeadDetailPage() {
                 </Badge>
               )}
               {isConverted && <Badge variant="default" className="bg-green-600">Converted</Badge>}
+              {!isConverted && (
+                <div className="flex items-center gap-2 ml-2">
+                  <Switch
+                    checked={lead.is_active}
+                    onCheckedChange={(checked) => {
+                      toggleActive.mutate(checked, {
+                        onSuccess: () => toast.success(checked ? 'Lead marked active' : 'Lead marked inactive'),
+                        onError: (err) => toast.error(err.message),
+                      })
+                    }}
+                    disabled={toggleActive.isPending}
+                  />
+                  <span className="text-xs text-muted-foreground">{lead.is_active ? 'Active' : 'Inactive'}</span>
+                </div>
+              )}
             </div>
             <p className="text-muted-foreground">Lead Details</p>
           </div>
@@ -154,6 +172,14 @@ export default function LeadDetailPage() {
           )}
         </div>
       </div>
+
+      {/* Inactive Banner */}
+      {!lead.is_active && (
+        <div className="flex items-center gap-2 rounded-lg border border-amber-300 bg-amber-50 dark:border-amber-700 dark:bg-amber-950/30 px-4 py-3">
+          <Archive className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+          <span className="text-sm font-medium text-amber-700 dark:text-amber-300">This lead is inactive</span>
+        </div>
+      )}
 
       {/* Tabs */}
       <Tabs defaultValue="overview">

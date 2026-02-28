@@ -1,12 +1,12 @@
 # Bigger Picture
 
-> **ACTIVE GOAL:** Leads Module Enhancement + External Lead Import Integrations (8 phases)
+> **ACTIVE GOAL:** Active/Inactive Leads + Auto-Create Leads from Outlook Meetings
 >
-> **STATUS:** COMPLETE — All 8 phases implemented, build passing, deployed. 2 type errors fixed during testing.
+> **STATUS:** IN PROGRESS — Implementing 10-step plan (migration, validator, API routes, hooks, UI, cron)
 >
-> **NEXT STEP:** Env vars needed on Vercel: MICROSOFT_CLIENT_ID/SECRET, REDDIT_CLIENT_ID/SECRET, INTEGRATION_ENCRYPTION_KEY
+> **NEXT STEP:** Step 1 — Migration 00035_lead_is_active.sql
 
-**Last Updated:** 2026-02-18
+**Last Updated:** 2026-02-28
 
 ---
 
@@ -72,12 +72,14 @@
 - OmniDesk: Migration 00022, 6 enums, 5 validators, 11 API routes, 7 hooks, 15 UI components, 4 pages, sidebar nav, Zustand store, Supabase Realtime subscriptions, Claude AI reply generation
 - Design System Overhaul: Branded blue primary color (oklch), next-themes ThemeProvider with light/dark/system, theme toggle in topbar, all layout components use design tokens (sidebar, topbar, mobile-nav), all 9+ support module components tokenized, all status badges use dark-mode-safe colors, KPI cards use bg-primary, settings/reports use primary/10 instead of hardcoded blue-50, kanban cards use bg-card tokens, all bg-white/bg-slate replaced
 - Dead UI Button Fixes: Removed 3 empty handlers (onAdd×2 on passwords/documents, onExport on clients), created ComingSoon reusable component, created 4 topbar/mobile-nav placeholder pages (sprint-planner, chat, calendar, actions-center), created 14 report sub-route placeholder pages — all previously-404 links now render gracefully
+- Leads Module Enhancement (8 phases): migrations 00031-00033, lead stages settings, enhanced add/detail pages, pipeline kanban, WhatsApp convert-to-lead, Outlook/Reddit/LinkedIn integrations
+- Active/Inactive Leads + Outlook Meeting Cron — IN PROGRESS
 
 ### What's Left
-1. ~~Verify Vercel deployment works~~ — DONE (production serving login page, 200 OK)
-2. ~~Performance: login static + Mumbai region~~ — DONE (vercel.json regions: bom1, auth layout force-dynamic removed)
-3. ~~Create test user account~~ — DONE (akshit@remotemunshi.com, Super Admin, is_admin=true)
-4. ~~Execute Contact Portal plan~~ — DONE (Phases 1-3: migration, auth, API, UI)
+1. ~~Verify Vercel deployment works~~ — DONE
+2. ~~Performance: login static + Mumbai region~~ — DONE
+3. ~~Create test user account~~ — DONE
+4. ~~Execute Contact Portal plan~~ — DONE
 5. Test auth flow end-to-end on live deployment
 6. Any remaining feature additions per user request
 
@@ -88,59 +90,10 @@
 ### Recently Completed
 | Date | Item | Impact |
 |------|------|--------|
-| 2026-02-06 | Task module debugged end-to-end | Fixed created_by FK (employeeId in apiHandler), self-ref FK (separate sub-tasks query), checklist PATCH toggle |
-| 2026-02-06 | Module flows documented | memory/module_flows.md: full DB/API/UI interlinkage map, added to CLAUDE.md checklist |
-| 2026-02-06 | Client Communications feature | Logging-only comms per client: validator, 2 API routes, timeline component, log dialog |
-| 2026-02-06 | Service Bundles feature | Full CRUD for bundles, client assignment, list+detail pages with service multi-select |
-| 2026-02-06 | CSV Import feature | 9-module CSV import: templates, parser/validator, import+template API routes, dialog UI with preview |
-| 2026-02-06 | CSV Import wired to all list pages | CsvImporter + onImport prop added to all 9 list pages (clients, leads, services, tasks, team, dscs, licenses, compliance, notices) |
-| 2026-02-06 | Tasks + Todos merged | Todos migrated to tasks, todo module deleted, "My Tasks" tab, sub-tasks with steps, v_task_summary updated |
-| 2026-02-06 | Invoicing module removed | All invoice routes/pages/validators/enums deleted, sidebar/dashboard/settings/reports cleaned |
-| 2026-02-06 | Service deadlines DB + validators | Migration 00018 (service_deadlines, deadline_reminders, KPI view, RLS), services.ts updated with deadline fields, deadlines.ts validator created |
-| 2026-02-06 | Service deadlines UI pages | use-deadlines.ts hooks, data-tracker list+detail pages, services/[id] detail page, services page updated with frequency/due_day columns + onRowClick + create form fields |
-| 2026-02-06 | Data Tracker wired to sidebar + client | CalendarClock icon in sidebar nav, Deadlines tab (12th) added to client detail, migration 00018 applied to Supabase, module_flows.md updated |
-| 2026-02-06 | Two-level task review system | Migration 00019 (reviewer columns on tasks), review API endpoint, review-aware status transitions, reviewer selects on task add, review status card + action card on task detail, "My Reviews" tab on task list, reviewers can add checklist steps |
-| 2026-02-06 | Kanban board + Task Templates | dnd-kit Kanban with review guards, task templates via recurring_tasks with CRUD/generate APIs, auto-task creation on deadline generation, 3 template pages, sidebar nav |
-| 2026-02-06 | Contacts + Template Overrides | Contacts separated from clients (N:M), per-client template overrides with additional_steps + notes, both generate routes merge overrides |
-| 2026-02-06 | OmniDesk Omnichannel Support | Full support module: conversations, messages, tickets, escalations, quick replies, AI reply, supervisor portal, realtime messaging |
-| 2026-02-07 | Fixed Vercel 404 — branch mismatch | Production branch `master` had default scaffold (2 routes). Force-pushed `main`→`master` to deploy full CRM |
-| 2026-02-07 | Performance: static login + Mumbai region | Removed force-dynamic from auth layout (login now CDN-cached). Added vercel.json with regions: ["bom1"] |
-| 2026-02-07 | RBAC enforcement | apiHandler requirePermission, usePermissions hook, sidebar filtering, all 64 routes wired |
-| 2026-02-07 | CSV import fixes | client_id lookup (DSC/License/Compliance/Notice), enum validation, per-row insert, team auth user creation |
-| 2026-02-07 | Forgot/reset password flow | /forgot-password page, /reset-password page, "Forgot password?" link on login |
-| 2026-02-07 | Account transfer + auth lifecycle | Team PUT handles email change (syncs auth), password reset trigger; Team DELETE bans auth user |
-| 2026-02-07 | Client onboarding templates | Migration 00024, trigger_type enum, validator with superRefine, generateOnboardingTasks utility, API guards/filters, client+lead hooks, UI toggle/tabs/conditional display |
-| 2026-02-07 | Migration 00024 applied to Supabase | template_trigger_type enum, trigger_type column, frequency nullable, partial index |
-| 2026-02-07 | Test user configured | akshit@remotemunshi.com: Super Admin role, is_admin=true, Partner designation, Accounts dept |
-| 2026-02-07 | Contact Portal planned | Full plan at .claude/plans/vivid-kindling-reef.md — 4 phases: auth foundation, API routes, UI pages, filing downloads (future) |
-| 2026-02-07 | Contact Portal built (Phases 1-3) | Migration 00025 (auth_user_id, portal_enabled, RLS for 11 tables), portalHandler, middleware update, magic link auth (send + callback + me), 9 read-only API routes, full portal UI (layout, login, dashboard, client detail with 7 tabs) |
-| 2026-02-07 | Applied missing migrations 00020-00023 | task_template_enhancements, contacts_and_template_overrides, omnidesk, split_managing_partner — all now live in Supabase |
-| 2026-02-09 | Compliance Matrix feature | 4-view compliance matrix (/compliance-matrix): By Service, By Period (FY pivot), By Client (services x months grid), By Group. KPI cards, deadline drawer with quick actions, sidebar nav. 2 API routes, 1 hook, 1 page, 7 components. |
-| 2026-02-09 | UI/UX Polish — Wave 1 (Global) | Sidebar grouped into 7 collapsible sections, EmptyState component (3 variants), unified StatusBadge + status-colors system, content-aware DataGrid skeletons, backdrop-blur topbar |
-| 2026-02-09 | UI/UX Polish — Wave 2 (High-Impact) | Login split layout with branding panel, Dashboard with live KPIs + activity feed + deadlines, Client detail with avatar/stat cards, Task detail with StatusBadge + overdue highlighting |
-| 2026-02-09 | UI/UX Polish — Wave 3 (List Pages) | Client list with avatar initials + code subtitle, Kanban cards with priority bars + checklist progress, Data Tracker with overdue day counts, Compliance Matrix heat-map cell colors |
-| 2026-02-09 | UI/UX Polish — Wave 4 (Forms & Support) | Task add form 2-column layout (description+steps left, metadata right), Client add multi-step wizard (4 steps), Settings page left sidebar navigation, Portal dashboard branded card grid |
-| 2026-02-09 | UI/UX Polish — Wave 5 (Reports & Misc) | NotificationPanel slide-out (grouped by date, All/Unread tabs, mark-all-read, unread badge), Reports hub with descriptions + chevron arrows |
-| 2026-02-09 | Visual Smoke Testing (12 pages) | All 12 pages verified via Playwright: login, dashboard, sidebar, client list, task list, kanban, data tracker, task add, client add, settings, reports, notification panel. 13 screenshots saved. |
-| 2026-02-09 | Bug fixes: Data Tracker + Deadlines API | Fixed Select.Item empty value crash (sentinel __all__), dashboard KPI endpoint typo (/kpis→/kpi), deadlines status filter comma-separated values (.in() instead of .eq()) |
-| 2026-02-09 | RBAC testing across hierarchy | Verified 5 roles: Super Admin (full), IT Admin (full), Manager (no Settings), Associate (no Settings), Article Assistant (Team only). 14 test accounts created for all levels. |
-| 2026-02-10 | Button testing + Select.Item fixes | Playwright tested 23 routes. Fixed Select.Item empty-value crashes on compliance-matrix (status filter), compliance-tracker (type+status filters), services (frequency selector). All use __all__/__none__ sentinels. |
-| 2026-02-10 | WhatsApp Business API Integration | Migration 00026 (whatsapp_accounts), Cloud API client (send/receive/media), webhook endpoint (HMAC verify), inbound processor (contact auto-create, conversation upsert, media→Storage), outbound sending on messages route, delivery receipts, Settings page (Embedded Signup + account list), React Query hooks, 3 new env vars |
-| 2026-02-11 | Fix 9 dead-end buttons | 4 list pages (team, DSC, license, notice) get add dialogs. 7 detail pages (team, bundles, DSC, license, notice, client, task) get edit dialogs. No new routes — all dialogs inline with useMutation. 11 files changed, 1343 insertions. |
-| 2026-02-11 | Revamp services UX | Removed pricing/SAC (CRM not accounting). Added association tabs (clients/tasks/templates/bundles) on detail page. Added filter pills on list page. Moved edit/delete to detail only. New associations API + RPC for counts. |
-| 2026-02-11 | Task time tracking | Changed estimated hours to h+m inputs (add+edit pages). Added per-step estimated_minutes/actual_minutes with inline editing. Step time totals in checklist header. Migration 00028 + checklist API time update support. |
-| 2026-02-11 | Fix service associations | Wrong column names in API (name→business_name, title→task_name, code→client_code). Supabase queries silently returned null. |
-| 2026-02-11 | Task dates + step owner | Migration 00029: target_date on tasks, owner_type on checklist items, target_days_before_due on templates. start_date/target_date/due_date on add+detail pages. Step owner toggle (Team/Client pill) on add+detail. Overdue highlighting: amber for target, red for due. |
-| 2026-02-12 | WhatsApp → ChakraHQ integration | Switched from direct Meta Cloud API to ChakraHQ pass-through. client.ts routes through api.chakrahq.com, auth via env vars, flexible webhook HMAC, ChakraHQ status card + webhook setup on Settings page, sendTemplateMessage added, deprecated token-exchange. 11 files changed. |
-| 2026-02-12 | YCloud WhatsApp provider added | Multi-provider support: provider dispatch in client.ts (getProviderForPhoneNumberId), YCloud send/media functions, /api/v1/webhooks/ycloud endpoint with HMAC-SHA256 verification, provider-aware outbound in messages route, provider field in accounts API, multi-provider setup status, Settings page with provider dropdown + badges + dual webhook URLs. 10 files changed, 765 insertions. |
-| 2026-02-12 | YCloud webhook: all 17 events | Expanded webhook handler from 2 to 17 YCloud events. Core (inbound/status) processed into OmniDesk. Phone number events update account metadata (quality/name status). Account ban/deletion auto-disconnects numbers. SMB echoes tracked. Template/payment/subscription events logged. |
-| 2026-02-12 | WhatsApp number selector in OmniDesk | New Conversation dialog now shows WhatsApp number dropdown when channel=whatsapp. User can override default number. phone_number_id stored in conversation metadata for correct provider routing. Validator updated to accept metadata field. |
-| 2026-02-12 | Fix YCloud outbound + contact picker | Fixed E.164 phone format (was stripping + prefix), updated DB display_phone_number to +917986534860. Added contact search/select + manual phone input to New Conversation dialog. Messages route fallback to metadata.recipient_phone. Always show Send From selector with no-accounts warning. |
-| 2026-02-12 | Per-channel & per-handle inbox views | Channel filter bar (All/WhatsApp/Email/Phone/SMS pill tabs with count badges), WhatsApp handle dropdown (filter by phone number with provider badges), phone_number_id JSONB filter on API, /conversations/counts endpoint, dark mode support. 3 Stitch designs. 7 files changed. |
-| 2026-02-18 | Leads Module Enhancement — Phase 1 | Migration 00031 (score/temperature/deal_value/follow-up cols + enum values), 00032 (lead_communications table), 00033 (integration_connections + lead_import_log). Lead-stages settings API (CRUD). Updated validators + enums. logActivity utility. |
-| 2026-02-18 | Leads Module Enhancement — Phase 2 | Enhanced add form (2-column, stage/assignees/services/temperature/score/deal value/follow-up). Rewritten detail page (3 tabs: Overview/Activity/Communications). Edit dialog. Hooks: use-lead-communications, use-lead-activity. Components: lead-activity-timeline, lead-communication-timeline, log-lead-communication-dialog. |
-| 2026-02-18 | Leads Module Enhancement — Phase 3 | Lead pipeline kanban board (dynamic columns from lead_stages, dnd-kit drag-and-drop, optimistic moves). List/Board toggle. Filter pills (source, stage, temperature, follow-up due). Enhanced KPIs (hot leads, pipeline value). |
-| 2026-02-18 | Leads Module Enhancement — Phases 4-8 | Phase 4: WhatsApp convert-to-lead API + button. Phase 5: Outlook OAuth (MS Graph) — 7 API routes, contacts/emails/meetings import, settings page. Phase 6: Reddit OAuth — 8 API routes, posts/comments/messages import, settings page. Phase 7: LinkedIn CSV import with field mapping. Phase 8: Settings hub updated with 3 new integration entries. |
+| 2026-02-18 | Leads Module Enhancement — Phases 1-8 | Full lead pipeline: kanban, scoring, integrations (Outlook, Reddit, LinkedIn, WhatsApp) |
+| 2026-02-12 | WhatsApp multi-provider + OmniDesk | YCloud + ChakraHQ providers, per-channel inbox, contact picker |
+| 2026-02-10 | WhatsApp Business API Integration | Cloud API client, webhooks, inbound processor, Settings page |
+| 2026-02-09 | UI/UX Polish (5 waves) + Visual Smoke Testing | Complete design overhaul, 12 pages verified |
 
 ### Upcoming
 | Item | Priority | Depends On |
@@ -148,7 +101,6 @@
 | | | |
 
 ### Constraints
-<!-- Hard limits that can't be changed -->
 - **Deployment:** GitHub (`akshitgarg206/remotemunshi-crm`) + Vercel (auto-deploy on push)
 - **Env vars needed on Vercel:** `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
 

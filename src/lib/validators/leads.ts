@@ -28,6 +28,7 @@ export const createLeadSchema = z.object({
   external_source: z.string().optional(),
   external_id: z.string().optional(),
   external_metadata: z.record(z.string(), z.unknown()).optional(),
+  is_active: z.boolean().optional(),
 })
 
 export const updateLeadSchema = createLeadSchema.partial()

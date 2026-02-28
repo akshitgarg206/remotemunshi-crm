@@ -49,12 +49,13 @@ export const POST = apiHandler(async (req, { params, supabase, employeeId }) => 
 
   if (clientError) throw clientError
 
-  // Update lead
+  // Update lead — mark converted + inactive
   await supabase
     .from('leads')
     .update({
       converted_client_id: client.id,
       converted_at: new Date().toISOString(),
+      is_active: false,
     })
     .eq('id', params.id)
 
