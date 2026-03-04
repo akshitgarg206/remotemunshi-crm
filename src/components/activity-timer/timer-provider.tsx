@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react'
 import { useTimerStore } from '@/stores/timer-store'
 import { playTripleBeep } from '@/lib/audio/beep'
+import { requestNotificationPermission, sendTimerNotification } from '@/lib/notifications/notify'
 import { EntryDialog } from './entry-dialog'
 
 export function TimerProvider() {
@@ -35,10 +36,18 @@ export function TimerProvider() {
     }
   }, [isRunning, tick])
 
-  // Play beep when timer completes
+  // Request notification permission when timer first starts
+  useEffect(() => {
+    if (isRunning) {
+      requestNotificationPermission()
+    }
+  }, [isRunning])
+
+  // Play beep + send notification when timer completes
   useEffect(() => {
     if (isTimerComplete && !prevCompleteRef.current) {
       playTripleBeep()
+      sendTimerNotification()
     }
     prevCompleteRef.current = isTimerComplete
   }, [isTimerComplete])

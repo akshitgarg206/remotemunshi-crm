@@ -111,8 +111,17 @@ export const useTimerStore = create<TimerState>((set, get) => ({
     const state = get()
     if (!state.isRunning || state.isTimerComplete) return
 
-    const newSeconds = state.secondsRemaining - 1
-    if (newSeconds <= 0) {
+    // Wall-clock-based countdown: compute remaining from actual clock time
+    // This prevents drift from setInterval inaccuracies over 900 ticks
+    let remaining: number
+    if (state.currentBlockStart) {
+      const blockEndMs = new Date(state.currentBlockStart).getTime() + BLOCK_DURATION * 1000
+      remaining = Math.round((blockEndMs - Date.now()) / 1000)
+    } else {
+      remaining = state.secondsRemaining - 1
+    }
+
+    if (remaining <= 0) {
       // Timer complete
       set({
         secondsRemaining: 0,
@@ -124,10 +133,10 @@ export const useTimerStore = create<TimerState>((set, get) => ({
       get().onTimerComplete()
     } else {
       set({
-        secondsRemaining: newSeconds,
+        secondsRemaining: remaining,
         lastTickTimestamp: Date.now(),
       })
-      persistState({ ...get(), secondsRemaining: newSeconds, lastTickTimestamp: Date.now() } as TimerPersistedState)
+      persistState({ ...get(), secondsRemaining: remaining, lastTickTimestamp: Date.now() } as TimerPersistedState)
     }
   },
 
