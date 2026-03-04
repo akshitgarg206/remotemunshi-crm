@@ -92,3 +92,6 @@ export type OmnideskMessageType = typeof OMNIDESK_MESSAGE_TYPE[number]
 
 export const TEMPLATE_TRIGGER_TYPE = ['recurring', 'onboarding'] as const
 export type TemplateTriggerType = typeof TEMPLATE_TRIGGER_TYPE[number]
+
+export const ACTIVITY_CATEGORY = ['operations', 'experiment', 'marketing', 'automation'] as const
+export type ActivityCategory = typeof ACTIVITY_CATEGORY[number]

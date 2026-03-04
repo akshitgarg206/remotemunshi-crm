@@ -7,7 +7,7 @@ import {
   LayoutDashboard, UserPlus, Users, Briefcase, Package, CheckSquare,
   FileKey, Award, Lock, FileText, ClipboardCheck, CalendarClock,
   UsersRound, AlertTriangle, BarChart3, Settings, ChevronLeft, ChevronRight,
-  Repeat, Headphones, Grid3X3, ChevronDown, type LucideIcon
+  Repeat, Headphones, Grid3X3, ChevronDown, Timer, type LucideIcon
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useSidebarStore } from '@/stores/sidebar-store'
@@ -33,6 +33,7 @@ const navGroups: NavGroup[] = [
     label: 'Overview',
     items: [
       { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, module: null },
+      { label: 'Activity Timer', href: '/timer', icon: Timer, module: null },
     ],
   },
   {

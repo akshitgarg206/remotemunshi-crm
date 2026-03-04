@@ -6,7 +6,7 @@ import {
   LayoutDashboard, UserPlus, Users, Briefcase, Package, CheckSquare,
   FileKey, Award, Lock, FileText, ClipboardCheck, CalendarClock,
   UsersRound, AlertTriangle, BarChart3, Settings, Repeat, Headphones, Grid3X3,
-  Zap, ListTodo, Bell, User, LogOut, Menu, Search, type LucideIcon
+  Zap, ListTodo, Bell, User, LogOut, Menu, Search, Timer, type LucideIcon
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -23,6 +23,7 @@ import { usePermissions } from '@/hooks/use-permissions'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 import { NotificationPanel } from '@/components/notification-panel'
+import { TimerWidget } from '@/components/activity-timer/timer-widget'
 
 interface NavItem {
   label: string
@@ -41,6 +42,7 @@ const navGroups: NavGroup[] = [
     label: 'Overview',
     items: [
       { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, module: null },
+      { label: 'Activity Timer', href: '/timer', icon: Timer, module: null },
     ],
   },
   {
@@ -152,6 +154,7 @@ export function Topbar() {
 
         {/* Right side */}
         <div className="flex items-center gap-1">
+          <TimerWidget />
           <ThemeToggle />
           <NotificationPanel />
           <DropdownMenu>

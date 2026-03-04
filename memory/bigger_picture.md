@@ -1,10 +1,10 @@
 # Bigger Picture
 
-> **ACTIVE GOAL:** Active/Inactive Leads + Auto-Create Leads from Outlook Meetings
+> **ACTIVE GOAL:** 15-Minute Activity Timer — productivity timer with beep, entry logging, category tracking, missed block detection
 >
-> **STATUS:** IN PROGRESS — Implementing 10-step plan (migration, validator, API routes, hooks, UI, cron)
+> **STATUS:** IN PROGRESS — Starting implementation (9 phases)
 >
-> **NEXT STEP:** Step 1 — Migration 00035_lead_is_active.sql
+> **NEXT STEP:** Phase 1: Database migration 00036
 
 **Last Updated:** 2026-02-28
 
