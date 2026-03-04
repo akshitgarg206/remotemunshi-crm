@@ -87,9 +87,9 @@ export function EntryDialog() {
       }
     })
 
-    // Add current block
+    // Add current block (block_end = block_start + 15 min, clock-aligned)
     if (currentBlockStart) {
-      const blockEnd = new Date().toISOString()
+      const blockEnd = new Date(new Date(currentBlockStart).getTime() + 15 * 60 * 1000).toISOString()
       blocks.push({
         block_start: currentBlockStart,
         block_end: blockEnd,

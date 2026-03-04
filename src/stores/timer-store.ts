@@ -3,6 +3,21 @@ import { create } from 'zustand'
 const BLOCK_DURATION = 900 // 15 minutes in seconds
 const LS_KEY = 'activity-timer-state'
 
+/** Floor a date to the nearest 15-minute clock boundary (e.g. 10:07 → 10:00, 10:22 → 10:15) */
+function getClockBlockStart(date: Date): Date {
+  const d = new Date(date)
+  d.setSeconds(0, 0)
+  d.setMinutes(Math.floor(d.getMinutes() / 15) * 15)
+  return d
+}
+
+/** Seconds remaining until the next 15-minute clock boundary */
+function secondsUntilNextBoundary(now: Date): number {
+  const blockStart = getClockBlockStart(now)
+  const blockEnd = new Date(blockStart.getTime() + BLOCK_DURATION * 1000)
+  return Math.max(1, Math.round((blockEnd.getTime() - now.getTime()) / 1000))
+}
+
 export interface MissedBlock {
   blockStart: string // ISO string
   blockEnd: string   // ISO string
@@ -63,13 +78,14 @@ export const useTimerStore = create<TimerState>((set, get) => ({
 
   start: () => {
     const state = get()
-    const now = new Date().toISOString()
+    const now = new Date()
     const updates: Partial<TimerState> = {
       isRunning: true,
       lastTickTimestamp: Date.now(),
     }
     if (!state.currentBlockStart) {
-      updates.currentBlockStart = now
+      updates.currentBlockStart = getClockBlockStart(now).toISOString()
+      updates.secondsRemaining = secondsUntilNextBoundary(now)
     }
     set(updates)
     persistState({ ...get(), ...updates } as TimerPersistedState)
@@ -126,11 +142,11 @@ export const useTimerStore = create<TimerState>((set, get) => ({
   clearMissedBlocks: () => set({ missedBlocks: [] }),
 
   restartAfterSubmit: () => {
-    const now = new Date().toISOString()
+    const now = new Date()
     const newState: TimerPersistedState = {
       isRunning: true,
-      secondsRemaining: BLOCK_DURATION,
-      currentBlockStart: now,
+      secondsRemaining: secondsUntilNextBoundary(now),
+      currentBlockStart: getClockBlockStart(now).toISOString(),
       lastTickTimestamp: Date.now(),
     }
     set({
@@ -166,24 +182,24 @@ export const useTimerStore = create<TimerState>((set, get) => ({
     const adjustedRemaining = secondsRemaining - elapsedSeconds
 
     if (adjustedRemaining <= 0) {
-      // Timer completed while away — detect missed blocks
+      // Timer completed while away — detect missed blocks using clock-aligned boundaries
       const missedBlocks: MissedBlock[] = []
 
       if (currentBlockStart) {
-        // The block that was running completed
-        const blockEnd = new Date(new Date(currentBlockStart).getTime() + BLOCK_DURATION * 1000).toISOString()
-        const totalElapsed = elapsedSeconds - secondsRemaining // seconds after the first block ended
-        const additionalBlocks = Math.floor(totalElapsed / BLOCK_DURATION)
+        const startTime = new Date(currentBlockStart)
+        const blockStartAligned = getClockBlockStart(startTime)
+        const blockEndAligned = new Date(blockStartAligned.getTime() + BLOCK_DURATION * 1000)
 
         // The original running block
         missedBlocks.push({
-          blockStart: currentBlockStart,
-          blockEnd,
+          blockStart: blockStartAligned.toISOString(),
+          blockEnd: blockEndAligned.toISOString(),
         })
 
-        // Any additional full 15-min blocks that passed
-        let prevEnd = new Date(blockEnd).getTime()
-        for (let i = 0; i < additionalBlocks && i < 20; i++) { // cap at 20 missed blocks (5 hours)
+        // Any additional full 15-min clock blocks that passed
+        const nowMs = Date.now()
+        let prevEnd = blockEndAligned.getTime()
+        for (let i = 0; i < 20 && prevEnd + BLOCK_DURATION * 1000 <= nowMs; i++) {
           const nextEnd = prevEnd + BLOCK_DURATION * 1000
           missedBlocks.push({
             blockStart: new Date(prevEnd).toISOString(),
